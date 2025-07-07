@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+}
+
+model Student {
+  roll_num Int      @id @unique
+  name     String
+  branch   String
+  password String
+  role     UserRole @default(STUDENT)
+
+  enrollments Enrollment[]
+  submissions AssignmentSubmission[]
+  problemSubs ProblemSubmission[]
+}
+
+model Teacher {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  name     String
+  dept     String
+  role     UserRole @default(TEACHER)
+
+  classes Class[]
+}
+
+model Class {
+  class_id   Int    @id @default(autoincrement())
+  name       String
+  joinCode   String @unique // Used by students to join
+  teacher_id Int
+
+  teacher     Teacher      @relation(fields: [teacher_id], references: [id])
+  enrollments Enrollment[]
+  assignments Assignment[]
+}
+
+model Enrollment {
+  class_id   Int
+  student_id Int
+
+  class   Class   @relation(fields: [class_id], references: [class_id])
+  student Student @relation(fields: [student_id], references: [roll_num])
+
+  @@id([class_id, student_id])
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  classId     Int
+  deadline    DateTime
+
+  class       Class                  @relation(fields: [classId], references: [class_id])
+  problems    Problem[]
+  submissions AssignmentSubmission[]
+  problemSubs ProblemSubmission[]
+}
+
+model Problem {
+  id             Int    @id @default(autoincrement())
+  title          String
+  content        String
+  assignmentId   Int
+  expectedOutput String
+
+  assignment  Assignment          @relation(fields: [assignmentId], references: [id])
+  problemSubs ProblemSubmission[]
+}
+
+model AssignmentSubmission {
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  assignmentId Int
+  isCompleted  Boolean  @default(false)
+  submittedAt  DateTime @default(now())
+
+  student    Student             @relation(fields: [student_id], references: [roll_num])
+  assignment Assignment          @relation(fields: [assignmentId], references: [id])
+  problems   ProblemSubmission[] // One-to-many with ProblemSubmission
+
+  @@unique([student_id, assignmentId])
+}
+
+model ProblemSubmission {
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  assignmentId Int
+  problemId    Int
+  isCompleted  Boolean  @default(false)
+  submittedAt  DateTime @default(now())
+
+  student    Student               @relation(fields: [student_id], references: [roll_num])
+  assignment Assignment            @relation(fields: [assignmentId], references: [id])
+  problem    Problem               @relation(fields: [problemId], references: [id])
+  submission AssignmentSubmission? @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
+
+  @@unique([student_id, assignmentId, problemId])
+}
