@@ -17,6 +17,7 @@ const express_2 = require("express");
 const zod_1 = __importDefault(require("zod"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../../prisma/prisma");
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const studentAuthRouter = (0, express_2.Router)();
 const signupInput = zod_1.default.object({
     roll_num: zod_1.default.number(),
@@ -36,11 +37,12 @@ studentAuthRouter.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0
         return res.status(411).json({ message: "Inputs not correct" });
     }
     const body = parseResult.data;
+    const hashedPassword = yield bcrypt_1.default.hash(body.password, 10);
     try {
         const user = yield prisma_1.prisma.student.create({
             data: {
                 name: body.name,
-                password: body.password,
+                password: hashedPassword,
                 roll_num: body.roll_num,
                 branch: body.branch
             },
@@ -71,7 +73,6 @@ studentAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
     try {
         const user = yield prisma_1.prisma.student.findFirst({
             where: {
-                password: body.password,
                 roll_num: body.roll_num
             },
         });
@@ -80,6 +81,10 @@ studentAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
             return res.json({
                 message: "Incorrect credentials"
             });
+        }
+        const passwordMatch = yield bcrypt_1.default.compare(body.password, user.password);
+        if (!passwordMatch) {
+            return res.status(403).json({ message: 'Incorrect credentials' });
         }
         const token = jsonwebtoken_1.default.sign({
             id: user.roll_num,

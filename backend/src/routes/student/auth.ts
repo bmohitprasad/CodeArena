@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import z from 'zod';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../prisma/prisma';
+import bcrypt from 'bcrypt';
 
 const studentAuthRouter = Router();
 const signupInput = z.object({
@@ -32,12 +33,13 @@ studentAuthRouter.post('/signup', async (req: Request, res: Response): Promise<a
   }
 
   const body = parseResult.data;
+  const hashedPassword = await bcrypt.hash(body.password, 10);
 
   try {
     const user = await prisma.student.create({
       data: {
         name: body.name,
-        password: body.password,
+        password: hashedPassword,
         roll_num: body.roll_num,
         branch: body.branch
       },
@@ -76,7 +78,6 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   try {
     const user = await prisma.student.findFirst({
       where: {
-        password: body.password,
         roll_num: body.roll_num
       },
     });
@@ -86,6 +87,12 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
       return res.json({
         message: "Incorrect credentials"
       })
+    }
+
+    const passwordMatch = await bcrypt.compare(body.password, user.password)
+
+    if (!passwordMatch) {
+      return res.status(403).json( {message : 'Incorrect credentials' });
     }
 
     const token = jwt.sign({ 

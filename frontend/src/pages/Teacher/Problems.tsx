@@ -63,14 +63,14 @@ export const TeacherProblems = () => {
         Authorization: localStorage.getItem("jwt")
       }
     });
-    navigate(`/admin/classes`);
+    navigate(`/teacher/classes`);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
       <Appbar />
       <div className="flex flex-1">
-        <Sidebar user="admin"  />
+        <Sidebar user="teacher"  />
         <main className="flex-1 p-6 flex gap-6">
           {/* Left Side: Create Problem Form */}
           <div className="w-1/3 bg-white p-6 rounded-xl shadow-md h-fit space-y-6">

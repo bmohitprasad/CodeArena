@@ -63,27 +63,25 @@ export interface StudentClasses {
 }  
 
 export const teacherClasses = () => {
-
     const [loading, setLoading] = useState(true)
     const [classes, setClasses] = useState<TeacherClasses[]>([])
 
+    const fetchClasses = async () => {
+        setLoading(true)
+        const response = await axios.get(`${BACKEND_URL}/api/v1/admin/classes`, {
+            headers: { Authorization: localStorage.getItem("jwt") }
+        })
+        setClasses(response.data)
+        setLoading(false)
+    }
+
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/v1/admin/classes`, {
-            headers: {
-                Authorization: localStorage.getItem("jwt")
-            }
-        })
-        .then(response => {
-            setLoading(false)
-            setClasses(response.data)
-        })
+        fetchClasses()
     }, [])
 
-    return {
-        loading,
-        classes
-    }
+    return { loading, classes, fetchClasses }
 }
+
 
 export const Assignments = ( {class_id} : {class_id: number} ) => {
 

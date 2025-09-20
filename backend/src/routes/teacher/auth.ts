@@ -1,4 +1,4 @@
-import express from 'express';
+import bcrypt from 'bcrypt'
 import { Router, Request, Response } from 'express';
 import z from 'zod';
 import jwt from 'jsonwebtoken';
@@ -25,18 +25,19 @@ const JWT_SECRET = "TOPSECRETCODE"
 
 teacherAuthRouter.post('/signup', async (req: Request, res: Response): Promise<any> => {
   const parseResult = signupInput.safeParse(req.body);
-
+  
   if (!parseResult.success) {
     return res.status(411).json({ message: "Inputs not correct" });
   }
-
+  
   const body = parseResult.data;
+  const hashedPassword = await bcrypt.hash(body.password, 10);
 
   try {
     const user = await prisma.teacher.create({
       data: {
         name: body.name,
-        password: body.password,
+        password: hashedPassword,
         email: body.email,
         dept: body.dept
       },
@@ -76,8 +77,7 @@ teacherAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   try {
     const user = await prisma.teacher.findFirst({
       where: {
-        email: body.email,
-        password: body.password
+        email: body.email
       },
     });
 
@@ -86,6 +86,12 @@ teacherAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
       return res.json({
         message: "Incorrect credentials"
       })
+    }
+
+    const passwordMatch = await bcrypt.compare(body.password, user.password)
+
+    if (!passwordMatch) {
+      return res.status(403).json({ message: 'Incorrect credentials' });
     }
 
     const token = jwt.sign({ 

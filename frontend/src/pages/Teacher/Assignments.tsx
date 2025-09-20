@@ -32,7 +32,7 @@ export const TeacherAssignments = () => {
         Authorization: localStorage.getItem("jwt")
       }
     });
-    navigate("/admin/classes");
+    navigate("/teacher/classes");
   };
 
   const handleCreateAssignment = async () => {
@@ -62,7 +62,7 @@ export const TeacherAssignments = () => {
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
       <Appbar />
       <div className="flex flex-1">
-        <Sidebar user="admin"  />
+        <Sidebar user="teacher"  />
         <div className="w-96 p-6 space-y-6">
           {/* Assignment Form */}
           <div className="bg-white p-6 rounded-xl shadow mb-6">

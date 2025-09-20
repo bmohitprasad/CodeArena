@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const express_1 = require("express");
 const zod_1 = __importDefault(require("zod"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -34,11 +35,12 @@ teacherAuthRouter.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0
         return res.status(411).json({ message: "Inputs not correct" });
     }
     const body = parseResult.data;
+    const hashedPassword = yield bcrypt_1.default.hash(body.password, 10);
     try {
         const user = yield prisma_1.prisma.teacher.create({
             data: {
                 name: body.name,
-                password: body.password,
+                password: hashedPassword,
                 email: body.email,
                 dept: body.dept
             },
@@ -70,8 +72,7 @@ teacherAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
     try {
         const user = yield prisma_1.prisma.teacher.findFirst({
             where: {
-                email: body.email,
-                password: body.password
+                email: body.email
             },
         });
         if (!user) {
@@ -79,6 +80,10 @@ teacherAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
             return res.json({
                 message: "Incorrect credentials"
             });
+        }
+        const passwordMatch = yield bcrypt_1.default.compare(body.password, user.password);
+        if (!passwordMatch) {
+            return res.status(403).json({ message: 'Incorrect credentials' });
         }
         const token = jsonwebtoken_1.default.sign({
             id: user.id,
