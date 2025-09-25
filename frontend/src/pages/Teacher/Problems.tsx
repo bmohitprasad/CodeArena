@@ -17,12 +17,6 @@ import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/TextArea";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-type DraftProblem = {
-  title: string;
-  content: string;
-  expectedOutput?: string | null;
-};
-
 export const TeacherProblems = () => {
   const { id } = useParams<{ id: string }>();
   const assignment_id = useMemo(() => parseInt(id || "0", 10), [id]);

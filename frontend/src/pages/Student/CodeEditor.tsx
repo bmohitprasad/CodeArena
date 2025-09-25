@@ -1,10 +1,31 @@
 // src/pages/student/CodeEditor.tsx
 
 import { useState, useMemo, useEffect } from "react";
-import { SingleProblem, useLatestSubmission, useRunCode, useSubmitCode, useSubmissionHistory } from "../../hooks";
+import {
+  SingleProblem,
+  useLatestSubmission,
+  useRunCode,
+  useSubmitCode,
+  useSubmissionHistory
+} from "../../hooks";
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
 import { useParams } from "react-router-dom";
+
+type HistoryItem = {
+  id: number;
+  language: string;
+  code: string;
+  stdin?: string | null;
+  createdAt: string;
+};
+
+const LANGUAGE_TEMPLATES: Record<string, string> = {
+  python: "print('hello world')",
+  java: `import java.util.*;\npublic class Main { public static void main(String[] args){ System.out.println("hello world"); } }`,
+  cpp: "#include <bits/stdc++.h>\nusing namespace std;\nint main(){ cout<<\"hello world\"; return 0; }",
+  c: "#include <stdio.h>\nint main(){ printf(\"hello world\\n\"); return 0; }"
+};
 
 export default function CodeEditor() {
   // Identity and route
@@ -25,6 +46,7 @@ export default function CodeEditor() {
   const [language, setLanguage] = useState("python");
   const [wrap, setWrap] = useState(true);
   const [editorRows, setEditorRows] = useState(20);
+  const [previewId, setPreviewId] = useState<number | null>(null);
 
   // Run and Submit hooks
   const { runCode, output, loading, error } = useRunCode();
@@ -51,7 +73,7 @@ export default function CodeEditor() {
   useEffect(() => {
     if (!loadingLatest && latest && idsReady) {
       setLanguage(latest.language || "python");
-      setCode(latest.code || "print('hello world')");
+      setCode(latest.code || LANGUAGE_TEMPLATES["python"]);
       setInput(latest.stdin || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,30 +92,15 @@ export default function CodeEditor() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    await submitCode({
-      studentId,
-      assignmentId,
-      problemId,
-      language,
-      code,
-      input
-    });
-    refreshHistory?.();
+    await submitCode({ studentId, assignmentId, problemId, language, code, input });
+    refreshHistory?.(); // ensures the new submission shows up immediately
   };
+
 
   const onLanguageChange = (val: string) => {
     setLanguage(val);
-    // Only replace with template if code is still default-ish or empty
     if (!code.trim() || code.trim() === "print('hello world')") {
-      if (val === "python") setCode("print('hello world')");
-      if (val === "java")
-        setCode(
-          `import java.util.*;\npublic class Main { public static void main(String[] args){ System.out.println("hello world"); } }`
-        );
-      if (val === "cpp")
-        setCode(`#include <bits/stdc++.h>\nusing namespace std;\nint main(){ cout<<"hello world"; return 0; }`);
-      if (val === "c")
-        setCode(`#include <stdio.h>\nint main(){ printf("hello world\\n"); return 0; }`);
+      setCode(LANGUAGE_TEMPLATES[val] || "");
     }
   };
 
@@ -127,7 +134,7 @@ export default function CodeEditor() {
             <div className="mt-6">
               <h2 className="text-sm font-semibold text-[#475569]">Expected Output</h2>
               <pre className="mt-1 bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg p-3 text-[#0F172A] overflow-auto">
-                {(singleProblem.problem as any)?.expectedOutput ?? "—"}
+                {(singleProblem.problem as any)?.expectedOutput || ""}
               </pre>
             </div>
           </section>
@@ -191,7 +198,6 @@ export default function CodeEditor() {
                 }`}
                 spellCheck={false}
                 disabled={initialHydrating}
-                style={{ resize: "vertical" }}
               />
             </div>
 
@@ -259,10 +265,10 @@ export default function CodeEditor() {
               </button>
 
               {submitOk && (
-                <span className="text-xs text-green-600">Saved!</span>
+                <span className="text-xs text-[#16A34A]">Saved!</span>
               )}
               {submitError && (
-                <span className="text-xs text-red-600">{submitError}</span>
+                <span className="text-xs text-[#DC2626]">{submitError}</span>
               )}
             </div>
 
@@ -286,10 +292,12 @@ export default function CodeEditor() {
                 <div className="mt-3 text-sm text-[#64748B]">No submissions yet.</div>
               ) : (
                 <ul className="mt-3 flex flex-col gap-2">
-                  {history!.map((h: any) => (
+                  {history!.map((h: HistoryItem) => (
                     <li
                       key={h.id}
-                      className="p-2 rounded border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-between"
+                      className={`p-2 rounded border ${
+                        h.id === previewId ? "border-[#2563EB]" : "border-[#E2E8F0]"
+                      } bg-[#F8FAFC] flex items-center justify-between`}
                     >
                       <div>
                         <div className="text-sm">
@@ -300,13 +308,57 @@ export default function CodeEditor() {
                           </span>
                         </div>
                         <div className="text-xs text-[#64748B] line-clamp-1">
-                          {(h.code || "").slice(0, 100).replace(/\n/g, " ")}
-                          {(h.code || "").length > 100 ? "…" : ""}
+                          {h.code.slice(0, 100).replace(/\n/g, " ")}{h.code.length > 100 ? "…" : ""}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#2563EB]"
+                          onClick={() => setPreviewId(previewId === h.id ? null : h.id)}
+                        >
+                          {previewId === h.id ? "Hide" : "Preview"}
+                        </button>
+                        <button
+                          className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#16A34A]"
+                          onClick={() => {
+                            setLanguage(h.language || "python");
+                            setCode(h.code || LANGUAGE_TEMPLATES["python"]);
+                            setInput(h.stdin || "");
+                          }}
+                        >
+                          Load
+                        </button>
                       </div>
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {previewId && (
+                <div className="mt-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3">
+                  {(() => {
+                    const p = history!.find((x: HistoryItem) => x.id === previewId);
+                    if (!p) return null;
+                    return (
+                      <>
+                        <div className="text-sm text-[#475569] mb-2">
+                          Preview • {p.language} • {new Date(p.createdAt).toLocaleString()}
+                        </div>
+                        <pre className="text-xs overflow-auto whitespace-pre-wrap">
+                          {p.code}
+                        </pre>
+                        {p.stdin ? (
+                          <>
+                            <div className="text-sm text-[#475569] mt-3 mb-1">stdin</div>
+                            <pre className="text-xs overflow-auto whitespace-pre-wrap">
+                              {p.stdin}
+                            </pre>
+                          </>
+                        ) : null}
+                      </>
+                    );
+                  })()}
+                </div>
               )}
             </div>
           </section>

@@ -150,9 +150,9 @@ model ProblemCodeSubmission {
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   problem    Problem    @relation(fields: [problemId], references: [id])
 
-  // Enforce one latest row per S-A-P
-  @@unique([student_id, assignmentId, problemId])
-  // Helpful indexes for instructor queries
+  // Remove the unique so multiple rows can be created
+  // @@unique([student_id, assignmentId, problemId])  <-- delete this
+
   @@index([assignmentId, problemId])
   @@index([student_id, assignmentId])
 }
