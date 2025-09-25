@@ -7,7 +7,7 @@ import studentAuthRouter from './routes/student/auth';
 import teacherAuthRouter from './routes/teacher/auth';
 
 const app = express();
-const PORT = 3002;
+const PORT = Number(process.env.PORT) || 3002;
 
 app.use(cors())
 app.use(express.json());
