@@ -1,30 +1,18 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const authenticate_1 = require("../../middleware/authenticate");
-const requireRole_1 = require("../../middleware/requireRole");
-const prisma_1 = require("../../prisma/prisma");
-const zod_1 = require("zod");
-const teacherRouter = (0, express_1.Router)();
-const createProblemSchema = zod_1.z.object({
-    title: zod_1.z.string().min(1),
-    content: zod_1.z.string().min(1),
-    expectedOutput: zod_1.z.string().optional().nullable()
+import { Router } from 'express';
+import { authenticate } from '../../middleware/authenticate';
+import { requireRole } from '../../middleware/requireRole';
+import { prisma } from '../../prisma/prisma';
+import { z } from 'zod';
+const teacherRouter = Router();
+const createProblemSchema = z.object({
+    title: z.string().min(1),
+    content: z.string().min(1),
+    expectedOutput: z.string().optional().nullable()
 });
-teacherRouter.get('/classes', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+teacherRouter.get('/classes', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
-        const teacherId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-        const classes = yield prisma_1.prisma.class.findMany({
+        const teacherId = req.user?.id;
+        const classes = await prisma.class.findMany({
             where: {
                 teacher_id: teacherId
             },
@@ -43,14 +31,13 @@ teacherRouter.get('/classes', authenticate_1.authenticate, (0, requireRole_1.req
         console.error(err);
         res.status(500).json({ error: 'Could not fetch classes' });
     }
-}));
-teacherRouter.post('/:id/create-class', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+});
+teacherRouter.post('/:id/create-class', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
-        const teacherId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || 0;
+        const teacherId = req.user?.id || 0;
         const name = req.body.className || "";
         const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const newClass = yield prisma_1.prisma.class.create({
+        const newClass = await prisma.class.create({
             data: {
                 name,
                 joinCode,
@@ -62,25 +49,24 @@ teacherRouter.post('/:id/create-class', authenticate_1.authenticate, (0, require
     catch (err) {
         res.status(500).json({ error: err });
     }
-}));
+});
 // Delete a class
-teacherRouter.delete('/class/:id', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+teacherRouter.delete('/class/:id', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const classId = parseInt(req.params.id);
-        yield prisma_1.prisma.class.delete({ where: { class_id: classId } });
+        await prisma.class.delete({ where: { class_id: classId } });
         res.json({ message: 'Class deleted successfully' });
     }
     catch (err) {
         res.status(500).json({ error: err });
     }
-}));
+});
 // Edit class name
-teacherRouter.put('/class/:id', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+teacherRouter.put('/class/:id', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const classId = parseInt(req.params.id);
-        const name = (_a = req.user) === null || _a === void 0 ? void 0 : _a.name;
-        const updated = yield prisma_1.prisma.class.update({
+        const name = req.user?.name;
+        const updated = await prisma.class.update({
             where: { class_id: classId },
             data: { name },
         });
@@ -89,11 +75,11 @@ teacherRouter.put('/class/:id', authenticate_1.authenticate, (0, requireRole_1.r
     catch (err) {
         res.status(500).json({ error: err });
     }
-}));
-teacherRouter.get('/class/:id/enrolled', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+teacherRouter.get('/class/:id/enrolled', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const classId = parseInt(req.params.id);
-        const enrolled = yield prisma_1.prisma.enrollment.findMany({
+        const enrolled = await prisma.enrollment.findMany({
             where: {
                 class_id: classId
             },
@@ -111,11 +97,11 @@ teacherRouter.get('/class/:id/enrolled', authenticate_1.authenticate, (0, requir
         console.error(err);
         res.status(500).json({ error: 'Could not fetch enrolled students' });
     }
-}));
-teacherRouter.get('/class/:id/assignments', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+teacherRouter.get('/class/:id/assignments', authenticate, async (req, res) => {
     try {
         const classId = parseInt(req.params.id);
-        const assignments = yield prisma_1.prisma.assignment.findMany({
+        const assignments = await prisma.assignment.findMany({
             where: {
                 classId: classId
             }
@@ -126,13 +112,13 @@ teacherRouter.get('/class/:id/assignments', authenticate_1.authenticate, (req, r
         console.error(err);
         res.status(500).json({ error: 'Could not fetch assignments' });
     }
-}));
+});
 // Create an assignment
-teacherRouter.post('/class/:id/create-assignment', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+teacherRouter.post('/class/:id/create-assignment', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const classId = parseInt(req.params.id);
         const { title, description, deadline } = req.body;
-        const assignment = yield prisma_1.prisma.assignment.create({
+        const assignment = await prisma.assignment.create({
             data: {
                 title,
                 description,
@@ -145,22 +131,22 @@ teacherRouter.post('/class/:id/create-assignment', authenticate_1.authenticate, 
     catch (err) {
         res.status(500).json({ error: err });
     }
-}));
+});
 //Delete an Assignment
-teacherRouter.delete('/assignment/:id', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+teacherRouter.delete('/assignment/:id', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const assignmentId = parseInt(req.params.id);
-        yield prisma_1.prisma.assignment.delete({ where: { id: assignmentId } });
+        await prisma.assignment.delete({ where: { id: assignmentId } });
         res.json({ message: 'Assignment deleted successfully' });
     }
     catch (err) {
         res.status(500).json({ error: err });
     }
-}));
-teacherRouter.get('/assignment/:id', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+teacherRouter.get('/assignment/:id', authenticate, async (req, res) => {
     try {
         const assignmentId = parseInt(req.params.id);
-        const problems = yield prisma_1.prisma.problem.findMany({
+        const problems = await prisma.problem.findMany({
             where: {
                 assignmentId: assignmentId
             }
@@ -171,9 +157,9 @@ teacherRouter.get('/assignment/:id', authenticate_1.authenticate, (req, res) => 
         console.error(err);
         res.status(500).json({ error: 'Could not fetch problems' });
     }
-}));
+});
 // Add a problem to an assignment
-teacherRouter.post('/assignment/:id/add-problem', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+teacherRouter.post('/assignment/:id/add-problem', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const assignmentId = Number(req.params.id);
         if (!assignmentId || Number.isNaN(assignmentId)) {
@@ -186,11 +172,11 @@ teacherRouter.post('/assignment/:id/add-problem', authenticate_1.authenticate, (
         const { title, content, expectedOutput } = parsed.data;
         const normalizedExpected = expectedOutput && expectedOutput.trim() !== "" ? expectedOutput : null;
         // Optional: ensure assignment exists
-        const assignment = yield prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } });
+        const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
         if (!assignment) {
             return res.status(404).json({ error: 'Assignment not found' });
         }
-        const problem = yield prisma_1.prisma.problem.create({
+        const problem = await prisma.problem.create({
             data: {
                 title,
                 content,
@@ -201,14 +187,14 @@ teacherRouter.post('/assignment/:id/add-problem', authenticate_1.authenticate, (
         return res.status(201).json(problem);
     }
     catch (err) {
-        console.error('add-problem error:', err === null || err === void 0 ? void 0 : err.code, err === null || err === void 0 ? void 0 : err.message);
-        return res.status(500).json({ error: (err === null || err === void 0 ? void 0 : err.message) || 'Internal server error' });
+        console.error('add-problem error:', err?.code, err?.message);
+        return res.status(500).json({ error: err?.message || 'Internal server error' });
     }
-}));
-teacherRouter.get('/submissions/:id', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+teacherRouter.get('/submissions/:id', authenticate, requireRole('TEACHER'), async (req, res) => {
     try {
         const assignmentId = parseInt(req.params.id);
-        const submissions = yield prisma_1.prisma.assignmentSubmission.findMany({
+        const submissions = await prisma.assignmentSubmission.findMany({
             where: {
                 assignmentId: assignmentId
             },
@@ -226,5 +212,5 @@ teacherRouter.get('/submissions/:id', authenticate_1.authenticate, (0, requireRo
         console.error(err);
         res.status(500).json({ error: 'Could not fetch submissions' });
     }
-}));
-exports.default = teacherRouter;
+});
+export default teacherRouter;

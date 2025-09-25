@@ -1,43 +1,29 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const bcrypt_1 = __importDefault(require("bcrypt"));
-const express_1 = require("express");
-const zod_1 = __importDefault(require("zod"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma_1 = require("../../prisma/prisma");
-const teacherAuthRouter = (0, express_1.Router)();
-const signupInput = zod_1.default.object({
-    password: zod_1.default.string().min(6),
-    name: zod_1.default.string(),
-    dept: zod_1.default.string(),
-    email: zod_1.default.string().email()
+import bcrypt from 'bcrypt';
+import { Router } from 'express';
+import z from 'zod';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../../prisma/prisma';
+const teacherAuthRouter = Router();
+const signupInput = z.object({
+    password: z.string().min(6),
+    name: z.string(),
+    dept: z.string(),
+    email: z.string().email()
 });
-const signinInput = zod_1.default.object({
-    email: zod_1.default.string().email(),
-    password: zod_1.default.string().min(6),
+const signinInput = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
 });
 const JWT_SECRET = "TOPSECRETCODE";
-teacherAuthRouter.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+teacherAuthRouter.post('/signup', async (req, res) => {
     const parseResult = signupInput.safeParse(req.body);
     if (!parseResult.success) {
         return res.status(411).json({ message: "Inputs not correct" });
     }
     const body = parseResult.data;
-    const hashedPassword = yield bcrypt_1.default.hash(body.password, 10);
+    const hashedPassword = await bcrypt.hash(body.password, 10);
     try {
-        const user = yield prisma_1.prisma.teacher.create({
+        const user = await prisma.teacher.create({
             data: {
                 name: body.name,
                 password: hashedPassword,
@@ -45,7 +31,7 @@ teacherAuthRouter.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0
                 dept: body.dept
             },
         });
-        const token = jsonwebtoken_1.default.sign({
+        const token = jwt.sign({
             id: user.id,
             role: user.role,
             name: user.name,
@@ -62,15 +48,15 @@ teacherAuthRouter.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0
         console.error(e);
         return res.status(411).send('Invalid');
     }
-}));
-teacherAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+teacherAuthRouter.post('/signin', async (req, res) => {
     const parseResult = signinInput.safeParse(req.body);
     if (!parseResult.success) {
         return res.status(411).json({ message: "Inputs not correct" });
     }
     const body = parseResult.data;
     try {
-        const user = yield prisma_1.prisma.teacher.findFirst({
+        const user = await prisma.teacher.findFirst({
             where: {
                 email: body.email
             },
@@ -81,11 +67,11 @@ teacherAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
                 message: "Incorrect credentials"
             });
         }
-        const passwordMatch = yield bcrypt_1.default.compare(body.password, user.password);
+        const passwordMatch = await bcrypt.compare(body.password, user.password);
         if (!passwordMatch) {
             return res.status(403).json({ message: 'Incorrect credentials' });
         }
-        const token = jsonwebtoken_1.default.sign({
+        const token = jwt.sign({
             id: user.id,
             role: user.role,
             name: user.name,
@@ -102,5 +88,5 @@ teacherAuthRouter.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0
         console.error(e);
         return res.status(411).send('Invalid');
     }
-}));
-exports.default = teacherAuthRouter;
+});
+export default teacherAuthRouter;
