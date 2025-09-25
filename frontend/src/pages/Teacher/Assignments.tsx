@@ -53,6 +53,7 @@ export const TeacherAssignments = () => {
       setTitle("");
       setDescription("");
       setDeadline("");
+      window.location.reload();
     } catch (error) {
       console.error("Error creating assignment:", error);
     }

@@ -3,7 +3,21 @@ import { runCode } from '../../lib/codeRunner';
 import { authenticate } from '../../middleware/authenticate';
 import { prisma } from '../../prisma/prisma';
 
+import z from 'zod';
+
+
 const studentRouter = Router();
+
+const submitSchema = z.object({
+  studentId: z.number().int(),
+  assignmentId: z.number().int(),
+  problemId: z.number().int(),
+  language: z.string().min(1),
+  code: z.string().min(1),
+  input: z.string().optional()
+});
+
+
 
 // Get student's joined classes
 
@@ -159,5 +173,112 @@ studentRouter.post('/assignment/:id', authenticate, async (req: Request, res: Re
   }
 });
 
+studentRouter.post('/submit-code', authenticate, async (req: Request, res: Response): Promise<any> => {
+  const parsed = submitSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+  }
+
+  const { studentId, assignmentId, problemId, language, code, input } = parsed.data;
+
+  try {
+    // Validate FK linkage to prevent constraint errors
+    const [student, assignment, problem] = await Promise.all([
+      prisma.student.findUnique({ where: { roll_num: studentId } }),
+      prisma.assignment.findUnique({ where: { id: assignmentId } }),
+      prisma.problem.findUnique({ where: { id: problemId } })
+    ]);
+
+    if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
+      return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
+    }
+
+    // Single write: upsert latest-only row
+    const latest = await prisma.problemCodeSubmission.upsert({
+      where: {
+        student_id_assignmentId_problemId: {
+          student_id: studentId,
+          assignmentId,
+          problemId
+        }
+      },
+      update: {
+        language,
+        code,
+        stdin: input ?? null
+      },
+      create: {
+        student_id: studentId,
+        assignmentId,
+        problemId,
+        language,
+        code,
+        stdin: input ?? null
+      }
+    });
+
+    return res.status(201).json({ id: latest.id, status: 'saved' });
+  } catch (e: any) {
+    console.error('submit-code error:', e?.code, e?.message, e);
+    return res.status(500).json({ error: e?.message || 'Failed to store submission' });
+  }
+});
+
+studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Request, res: Response): Promise<any> => {
+  const problemId = Number(req.params.problemId);
+  const assignmentId = Number(req.query.assignmentId);
+  const studentId = Number(req.query.studentId);
+
+  if (!problemId || !assignmentId || !studentId) {
+    return res.status(400).json({ error: 'Missing ids' });
+  }
+
+  try {
+    const latest = await prisma.problemCodeSubmission.findUnique({
+      where: {
+        student_id_assignmentId_problemId: {
+          student_id: studentId,
+          assignmentId,
+          problemId
+        }
+      },
+      select: { language: true, code: true, stdin: true }
+    });
+
+    if (!latest) {
+      return res.json({
+        language: 'python',
+        code: "print('hello world')",
+        stdin: ''
+      });
+    }
+    return res.json(latest);
+  } catch (e: any) {
+    console.error('latest fetch error:', e?.code, e?.message);
+    return res.status(500).json({ error: 'Failed to load latest submission' });
+  }
+});
+
+studentRouter.get('/problem/:problemId/submissions', authenticate, async (req: Request, res: Response): Promise<any> => {
+  const problemId = Number(req.params.problemId);
+  const assignmentId = Number(req.query.assignmentId);
+  const studentId = Number(req.query.studentId);
+
+  if (!problemId || !assignmentId || !studentId) {
+    return res.status(400).json({ error: 'Missing ids' });
+  }
+
+  try {
+    const rows = await prisma.problemCodeSubmission.findMany({
+      where: { student_id: studentId, assignmentId, problemId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, language: true, code: true, stdin: true, createdAt: true }
+    });
+    return res.json(rows);
+  } catch (e: any) {
+    console.error('history error:', e?.code, e?.message);
+    return res.status(500).json({ error: 'Failed to load history' });
+  }
+});
 
 export default studentRouter;

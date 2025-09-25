@@ -13,7 +13,13 @@ const express_1 = require("express");
 const authenticate_1 = require("../../middleware/authenticate");
 const requireRole_1 = require("../../middleware/requireRole");
 const prisma_1 = require("../../prisma/prisma");
+const zod_1 = require("zod");
 const teacherRouter = (0, express_1.Router)();
+const createProblemSchema = zod_1.z.object({
+    title: zod_1.z.string().min(1),
+    content: zod_1.z.string().min(1),
+    expectedOutput: zod_1.z.string().optional().nullable()
+});
 teacherRouter.get('/classes', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -169,23 +175,36 @@ teacherRouter.get('/assignment/:id', authenticate_1.authenticate, (req, res) => 
 // Add a problem to an assignment
 teacherRouter.post('/assignment/:id/add-problem', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const assignmentId = parseInt(req.params.id);
-        const { title, content, expectedOutput } = req.body;
+        const assignmentId = Number(req.params.id);
+        if (!assignmentId || Number.isNaN(assignmentId)) {
+            return res.status(400).json({ error: 'Invalid assignment id' });
+        }
+        const parsed = createProblemSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+        }
+        const { title, content, expectedOutput } = parsed.data;
+        const normalizedExpected = expectedOutput && expectedOutput.trim() !== "" ? expectedOutput : null;
+        // Optional: ensure assignment exists
+        const assignment = yield prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } });
+        if (!assignment) {
+            return res.status(404).json({ error: 'Assignment not found' });
+        }
         const problem = yield prisma_1.prisma.problem.create({
             data: {
                 title,
                 content,
-                expectedOutput,
-                assignmentId,
-            },
+                expectedOutput: normalizedExpected,
+                assignmentId
+            }
         });
-        res.json(problem);
+        return res.status(201).json(problem);
     }
     catch (err) {
-        res.status(500).json({ error: err });
+        console.error('add-problem error:', err === null || err === void 0 ? void 0 : err.code, err === null || err === void 0 ? void 0 : err.message);
+        return res.status(500).json({ error: (err === null || err === void 0 ? void 0 : err.message) || 'Internal server error' });
     }
 }));
-exports.default = teacherRouter;
 teacherRouter.get('/submissions/:id', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const assignmentId = parseInt(req.params.id);
@@ -208,3 +227,4 @@ teacherRouter.get('/submissions/:id', authenticate_1.authenticate, (0, requireRo
         res.status(500).json({ error: 'Could not fetch submissions' });
     }
 }));
+exports.default = teacherRouter;

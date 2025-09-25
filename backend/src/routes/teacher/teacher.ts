@@ -2,8 +2,16 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../../middleware/authenticate';
 import { requireRole } from '../../middleware/requireRole';
 import { prisma } from '../../prisma/prisma';
+import { z } from 'zod';
 
 const teacherRouter = Router()
+
+
+const createProblemSchema = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+  expectedOutput: z.string().optional().nullable()
+});
 
 teacherRouter.get('/classes', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
   try {
@@ -172,46 +180,65 @@ teacherRouter.get('/assignment/:id', authenticate, async (req: Request, res: Res
   // Add a problem to an assignment
 teacherRouter.post('/assignment/:id/add-problem', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
     try {
-      const assignmentId = parseInt(req.params.id);
-      const { title, content, expectedOutput } = req.body;
-  
+      const assignmentId = Number(req.params.id);
+      if (!assignmentId || Number.isNaN(assignmentId)) {
+        return res.status(400).json({ error: 'Invalid assignment id' });
+      }
+
+      const parsed = createProblemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+      }
+
+      const { title, content, expectedOutput } = parsed.data;
+      const normalizedExpected =
+        expectedOutput && expectedOutput.trim() !== "" ? expectedOutput : null;
+
+      // Optional: ensure assignment exists
+      const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
+      if (!assignment) {
+        return res.status(404).json({ error: 'Assignment not found' });
+      }
+
       const problem = await prisma.problem.create({
         data: {
           title,
           content,
-          expectedOutput,
-          assignmentId,
-        },
+          expectedOutput: normalizedExpected,
+          assignmentId
+        }
       });
-  
-      res.json(problem);
-    } catch (err) {
-      res.status(500).json({ error: err });
+
+      return res.status(201).json(problem);
+    } catch (err: any) {
+      console.error('add-problem error:', err?.code, err?.message);
+      return res.status(500).json({ error: err?.message || 'Internal server error' });
     }
   });
   
-export default teacherRouter;
-
-teacherRouter.get('/submissions/:id', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
-  try {
-    const assignmentId = parseInt(req.params.id);
-
-    const submissions = await prisma.assignmentSubmission.findMany({
-      where: {
-        assignmentId: assignmentId
-      },
-      include: {
-        student: {
-          select: {
-            name: true
+  
+  teacherRouter.get('/submissions/:id', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      
+      const submissions = await prisma.assignmentSubmission.findMany({
+        where: {
+          assignmentId: assignmentId
+        },
+        include: {
+          student: {
+            select: {
+              name: true
+            }
           }
         }
-      }
-    });
-    
-    res.json(submissions);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Could not fetch submissions' });
-  }
-});
+      });
+      
+      res.json(submissions);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Could not fetch submissions' });
+    }
+  });
+
+export default teacherRouter;

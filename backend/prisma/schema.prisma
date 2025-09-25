@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -19,99 +15,144 @@ enum UserRole {
 }
 
 model Student {
-  roll_num     Int                    @id @unique
-  name         String
-  branch       String
-  password     String
-  role         UserRole              @default(STUDENT)
+  roll_num Int      @id @unique
+  name     String
+  branch   String
+  password String
+  role     UserRole @default(STUDENT)
 
-  enrollments  Enrollment[]
-  submissions  AssignmentSubmission[]
-  problemSubs  ProblemSubmission[]
+  enrollments Enrollment[]
+  submissions AssignmentSubmission[]
+  problemSubs ProblemSubmission[]
+
+  // Backref to code submissions (latest-only row per problem)
+  codeSubs ProblemCodeSubmission[]
 }
 
 model Teacher {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  password  String
-  name      String
-  dept      String
-  role      UserRole   @default(TEACHER)
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  name     String
+  dept     String
+  role     UserRole @default(TEACHER)
 
-  classes   Class[]
+  classes Class[]
 }
 
 model Class {
-  class_id     Int           @id @default(autoincrement())
-  name         String
-  joinCode     String        @unique // Used by students to join
-  teacher_id   Int
+  class_id   Int    @id @default(autoincrement())
+  name       String
+  joinCode   String @unique
+  teacher_id Int
 
-  teacher      Teacher       @relation(fields: [teacher_id], references: [id])
-  enrollments  Enrollment[]
-  assignments  Assignment[]
+  teacher     Teacher      @relation(fields: [teacher_id], references: [id])
+  enrollments Enrollment[]
+  assignments Assignment[]
 }
 
 model Enrollment {
-  class_id     Int
-  student_id   Int
+  class_id   Int
+  student_id Int
 
-  class        Class         @relation(fields: [class_id], references: [class_id])
-  student      Student       @relation(fields: [student_id], references: [roll_num])
+  class   Class   @relation(fields: [class_id], references: [class_id])
+  student Student @relation(fields: [student_id], references: [roll_num])
 
   @@id([class_id, student_id])
 }
 
 model Assignment {
-  id           Int                    @id @default(autoincrement())
-  title        String
-  description  String
-  createdAt    DateTime               @default(now())
-  classId      Int
-  deadline     DateTime
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  classId     Int
+  deadline    DateTime
 
-  class        Class                  @relation(fields: [classId], references: [class_id])
-  problems     Problem[]
-  submissions  AssignmentSubmission[]
-  problemSubs  ProblemSubmission[]
+  class       Class                  @relation(fields: [classId], references: [class_id])
+  problems    Problem[]
+  submissions AssignmentSubmission[]
+  problemSubs ProblemSubmission[]
+
+  // Backref to code submissions
+  codeSubs ProblemCodeSubmission[]
+
+  @@index([classId])
 }
 
 model Problem {
-  id             Int                  @id @default(autoincrement())
+  id             Int                     @id @default(autoincrement())
   title          String
   content        String
   assignmentId   Int
-  expectedOutput String
-
-  assignment     Assignment           @relation(fields: [assignmentId], references: [id])
+  expectedOutput String? // <-- make optional
+  assignment     Assignment              @relation(fields: [assignmentId], references: [id])
   problemSubs    ProblemSubmission[]
+  codeSubs       ProblemCodeSubmission[]
 }
 
 model AssignmentSubmission {
-  id             Int                  @id @default(autoincrement())
-  student_id     Int
-  assignmentId   Int
-  isCompleted    Boolean              @default(false)
-  submittedAt    DateTime             @default(now())
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  assignmentId Int
+  isCompleted  Boolean  @default(false)
+  submittedAt  DateTime @default(now())
 
-  student        Student              @relation(fields: [student_id], references: [roll_num])
-  assignment     Assignment           @relation(fields: [assignmentId], references: [id])
-  problems       ProblemSubmission[]
+  student    Student    @relation(fields: [student_id], references: [roll_num])
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+
+  // Opposite side lives on ProblemSubmission.submission (see below)
+  problems ProblemSubmission[]
+
   @@unique([student_id, assignmentId])
+  @@index([assignmentId])
+  @@index([student_id])
 }
 
 model ProblemSubmission {
-  id             Int                   @id @default(autoincrement())
-  student_id     Int
-  assignmentId   Int
-  problemId      Int
-  isCompleted    Boolean               @default(false)
-  submittedAt    DateTime              @default(now())
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  assignmentId Int
+  problemId    Int
+  isCompleted  Boolean  @default(false)
+  submittedAt  DateTime @default(now())
 
-  student        Student               @relation(fields: [student_id], references: [roll_num])
-  assignment     Assignment            @relation(fields: [assignmentId], references: [id])
-  problem        Problem               @relation(fields: [problemId], references: [id])
-  submission     AssignmentSubmission? @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
+  student    Student    @relation(fields: [student_id], references: [roll_num])
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  problem    Problem    @relation(fields: [problemId], references: [id])
+
+  // This is the missing opposite field. It ties ProblemSubmission
+  // to its parent AssignmentSubmission via the same (student_id, assignmentId).
+  submission AssignmentSubmission? @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
 
   @@unique([student_id, assignmentId, problemId])
+  @@index([assignmentId, problemId])
+  @@index([student_id, assignmentId])
+}
+
+// Latest-only code submission per student–assignment–problem
+model ProblemCodeSubmission {
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  assignmentId Int
+  problemId    Int
+  language     String   @db.VarChar(64)
+  code         String   @db.Text
+  stdin        String?  @db.Text
+  stdout       String?  @db.Text
+  stderr       String?  @db.Text
+  verdict      String?  @db.VarChar(64)
+  runtimeMs    Int?
+  memoryKb     Int?
+  createdAt    DateTime @default(now())
+
+  student    Student    @relation(fields: [student_id], references: [roll_num])
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  problem    Problem    @relation(fields: [problemId], references: [id])
+
+  // Enforce one latest row per S-A-P
+  @@unique([student_id, assignmentId, problemId])
+  // Helpful indexes for instructor queries
+  @@index([assignmentId, problemId])
+  @@index([student_id, assignmentId])
 }

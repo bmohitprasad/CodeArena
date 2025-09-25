@@ -270,3 +270,136 @@ export const SingleProblem = ({ problem_id }: { problem_id: number; }) => {
         problem
     }
 }
+
+export const useSubmitCode = () => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitOk, setSubmitOk] = useState<boolean>(false);
+
+  const submitCode = async (params: {
+    studentId: number;
+    assignmentId: number;
+    problemId: number;
+    language: string;
+    code: string;
+    input?: string;
+  }) => {
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitOk(false);
+    try {
+      const token = localStorage.getItem("jwt") || "";
+      const res = await axios.post(
+        `${BACKEND_URL}/api/v1/student/submit-code`,
+        {
+          ...params,
+          studentId: Number(params.studentId),
+          assignmentId: Number(params.assignmentId),
+          problemId: Number(params.problemId)
+        },
+        {
+          headers: {
+            Authorization: `${token}`
+          }
+        }
+      );
+      if (res.status >= 200 && res.status < 300) {
+        setSubmitOk(true);
+      } else {
+        setSubmitError(
+          (res.data && (res.data.error || res.data.message)) ||
+            "Submission failed"
+        );
+      }
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        e?.message ||
+        "Request failed";
+      setSubmitError(String(msg));
+    } finally {
+      setSubmitting(false);
+      setTimeout(() => setSubmitOk(false), 2500);
+    }
+  };
+
+  return { submitCode, submitting, submitError, submitOk };
+};
+
+export const useLatestSubmission = (studentId: number, assignmentId: number, problemId: number) => {
+  const [loadingLatest, setLoadingLatest] = useState(true);
+  const [latest, setLatest] = useState<{ language: string; code: string; stdin?: string }>({
+    language: 'python',
+    code: "print('hello world')",
+    stdin: ''
+  });
+  const [latestError, setLatestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      if (!studentId || !assignmentId || !problemId) return;
+      setLoadingLatest(true);
+      setLatestError(null);
+      try {
+        const token = localStorage.getItem('jwt') || '';
+        const res = await axios.get(
+          `${BACKEND_URL}/api/v1/student/problem/${problemId}/latest`,
+          {
+            params: { assignmentId, studentId },
+            headers: { Authorization: `${token}` }
+          }
+        );
+        const data = res.data || {};
+        setLatest({
+          language: typeof data.language === 'string' ? data.language : 'python',
+          code: typeof data.code === 'string' ? data.code : "print('hello world')",
+          stdin: typeof data.stdin === 'string' ? data.stdin : ''
+        });
+      } catch (e: any) {
+        setLatestError(
+          e?.response?.data?.error || e?.message || 'Failed to load latest submission'
+        );
+      } finally {
+        setLoadingLatest(false);
+      }
+    };
+    fetchLatest();
+  }, [studentId, assignmentId, problemId]);
+
+  return { loadingLatest, latest, latestError };
+};
+
+export const useSubmissionHistory = (studentId: number, assignmentId: number, problemId: number) => {
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const fetchHistory = async () => {
+    if (!studentId || !assignmentId || !problemId) return;
+    setLoadingHistory(true);
+    setHistoryError(null);
+    try {
+      const token = localStorage.getItem('jwt') || '';
+      const res = await axios.get(
+        `${BACKEND_URL}/api/v1/student/problem/${problemId}/submissions`,
+        {
+          params: { assignmentId, studentId },
+          headers: { Authorization: `${token}` }
+        }
+      );
+      setHistory(Array.isArray(res.data) ? res.data : []);
+    } catch (e: any) {
+      setHistoryError(e?.response?.data?.error || e?.message || 'Failed to load history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, [studentId, assignmentId, problemId]);
+
+  return { loadingHistory, history, historyError, refreshHistory: fetchHistory };
+};
+

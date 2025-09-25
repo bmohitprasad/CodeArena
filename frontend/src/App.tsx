@@ -8,6 +8,7 @@ import { StudentClasses } from "./pages/Student/Classes"
 import { StudentAssignments } from "./pages/Student/Assignments"
 import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
+import { SubmissionPage } from "./pages/Student/SubmissionPage"
 // import ProblemPage from "./pages/Student/CodeEditor"
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
         <Route path="/student/class/:id" element={<StudentAssignments/>}/>
         <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
         <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
-        {/* <Route path="/student/assignment/problem/:id" element={<ProblemPage/>}/> */}
+        <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
       </Routes>
     </BrowserRouter>
   )

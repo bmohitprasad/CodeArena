@@ -8,12 +8,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const codeRunner_1 = require("../../lib/codeRunner");
 const authenticate_1 = require("../../middleware/authenticate");
 const prisma_1 = require("../../prisma/prisma");
+const zod_1 = __importDefault(require("zod"));
 const studentRouter = (0, express_1.Router)();
+const submitSchema = zod_1.default.object({
+    studentId: zod_1.default.number().int(),
+    assignmentId: zod_1.default.number().int(),
+    problemId: zod_1.default.number().int(),
+    language: zod_1.default.string().min(1),
+    code: zod_1.default.string().min(1),
+    input: zod_1.default.string().optional()
+});
 // Get student's joined classes
 studentRouter.post('/join', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const joinCode = req.body.joinCode;
@@ -145,6 +157,104 @@ studentRouter.post('/assignment/:id', authenticate_1.authenticate, (req, res) =>
     }
     catch (err) {
         res.status(500).json({ error: err });
+    }
+}));
+studentRouter.post('/submit-code', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const parsed = submitSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+    }
+    const { studentId, assignmentId, problemId, language, code, input } = parsed.data;
+    try {
+        // Validate FK linkage to prevent constraint errors
+        const [student, assignment, problem] = yield Promise.all([
+            prisma_1.prisma.student.findUnique({ where: { roll_num: studentId } }),
+            prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } }),
+            prisma_1.prisma.problem.findUnique({ where: { id: problemId } })
+        ]);
+        if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
+            return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
+        }
+        // Single write: upsert latest-only row
+        const latest = yield prisma_1.prisma.problemCodeSubmission.upsert({
+            where: {
+                student_id_assignmentId_problemId: {
+                    student_id: studentId,
+                    assignmentId,
+                    problemId
+                }
+            },
+            update: {
+                language,
+                code,
+                stdin: input !== null && input !== void 0 ? input : null
+            },
+            create: {
+                student_id: studentId,
+                assignmentId,
+                problemId,
+                language,
+                code,
+                stdin: input !== null && input !== void 0 ? input : null
+            }
+        });
+        return res.status(201).json({ id: latest.id, status: 'saved' });
+    }
+    catch (e) {
+        console.error('submit-code error:', e === null || e === void 0 ? void 0 : e.code, e === null || e === void 0 ? void 0 : e.message, e);
+        return res.status(500).json({ error: (e === null || e === void 0 ? void 0 : e.message) || 'Failed to store submission' });
+    }
+}));
+studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const problemId = Number(req.params.problemId);
+    const assignmentId = Number(req.query.assignmentId);
+    const studentId = Number(req.query.studentId);
+    if (!problemId || !assignmentId || !studentId) {
+        return res.status(400).json({ error: 'Missing ids' });
+    }
+    try {
+        const latest = yield prisma_1.prisma.problemCodeSubmission.findUnique({
+            where: {
+                student_id_assignmentId_problemId: {
+                    student_id: studentId,
+                    assignmentId,
+                    problemId
+                }
+            },
+            select: { language: true, code: true, stdin: true }
+        });
+        if (!latest) {
+            return res.json({
+                language: 'python',
+                code: "print('hello world')",
+                stdin: ''
+            });
+        }
+        return res.json(latest);
+    }
+    catch (e) {
+        console.error('latest fetch error:', e === null || e === void 0 ? void 0 : e.code, e === null || e === void 0 ? void 0 : e.message);
+        return res.status(500).json({ error: 'Failed to load latest submission' });
+    }
+}));
+studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const problemId = Number(req.params.problemId);
+    const assignmentId = Number(req.query.assignmentId);
+    const studentId = Number(req.query.studentId);
+    if (!problemId || !assignmentId || !studentId) {
+        return res.status(400).json({ error: 'Missing ids' });
+    }
+    try {
+        const rows = yield prisma_1.prisma.problemCodeSubmission.findMany({
+            where: { student_id: studentId, assignmentId, problemId },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, language: true, code: true, stdin: true, createdAt: true }
+        });
+        return res.json(rows);
+    }
+    catch (e) {
+        console.error('history error:', e === null || e === void 0 ? void 0 : e.code, e === null || e === void 0 ? void 0 : e.message);
+        return res.status(500).json({ error: 'Failed to load history' });
     }
 }));
 exports.default = studentRouter;
