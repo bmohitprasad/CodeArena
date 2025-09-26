@@ -211,6 +211,16 @@ export const TeacherProblems = () => {
                     >
                       {creating ? "Creating..." : "Create Problem"}
                     </Button>
+                    {errorMsg && (
+                      <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded">
+                        {errorMsg}
+                      </div>
+                    )}
+                    {successMsg && (
+                      <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded">
+                        {successMsg}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
