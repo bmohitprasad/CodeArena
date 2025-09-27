@@ -21,7 +21,7 @@ const StudentAuth: React.FC = () => {
     const { name, value } = e.target;
     setPostInputs((prev) => ({
       ...prev,
-      [name]: name === 'roll_num' ? Number(value) : value,
+      [name]: name === 'roll_num' ? value : value,
     }));
   };
 
