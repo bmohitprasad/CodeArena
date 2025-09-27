@@ -7,7 +7,7 @@ import z from 'zod';
 const studentRouter = Router();
 
 const submitSchema = z.object({
-  studentId: z.number().int(),
+  studentId: z.string(),
   assignmentId: z.number().int(),
   problemId: z.number().int(),
   language: z.string().min(1),
@@ -50,7 +50,7 @@ studentRouter.post('/join', authenticate, async (req: Request, res: Response): P
 
 // Get student's classes
 studentRouter.get('/:id/classes', authenticate, async (req: Request, res: Response): Promise<any>  => {
-  const studentId = parseInt(req.params.id);
+  const studentId = req.params.id;
 
   try {
     const enrolledClasses = await prisma.enrollment.findMany({
@@ -183,7 +183,7 @@ studentRouter.post('/submit-code', authenticate, async (req: Request, res: Respo
 studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = Number(req.params.problemId);
   const assignmentId = Number(req.query.assignmentId);
-  const studentId = Number(req.query.studentId);
+  const studentId = String(req.query.studentId);
 
   if (!problemId || !assignmentId || !studentId) {
     return res.status(400).json({ error: 'Missing ids' });
@@ -210,7 +210,7 @@ studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Reques
 studentRouter.get('/problem/:problemId/submissions', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = Number(req.params.problemId);
   const assignmentId = Number(req.query.assignmentId);
-  const studentId = Number(req.query.studentId);
+  const studentId = String(req.query.studentId);
 
   if (!problemId || !assignmentId || !studentId) {
     return res.status(400).json({ error: 'Missing ids' });

@@ -7,15 +7,15 @@ import bcrypt from 'bcrypt';
 
 const studentAuthRouter = Router();
 const signupInput = z.object({
-  roll_num: z.number(),
-  password: z.string().min(6),
+  roll_num: z.string(),
+  password: z.string(),
   name: z.string(),
   branch: z.string()
 });
 
 const signinInput = z.object({
-  roll_num: z.number(),
-  password: z.string().min(6),
+  roll_num: z.string(),
+  password: z.string(),
 });
 
 export type SignupInput = z.infer<typeof signupInput>;

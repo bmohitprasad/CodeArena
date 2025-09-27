@@ -15,7 +15,7 @@ enum UserRole {
 }
 
 model Student {
-  roll_num Int      @id @unique
+  roll_num String      @id @unique
   name     String
   branch   String
   password String
@@ -53,7 +53,7 @@ model Class {
 
 model Enrollment {
   class_id   Int
-  student_id Int
+  student_id String
 
   class   Class   @relation(fields: [class_id], references: [class_id])
   student Student @relation(fields: [student_id], references: [roll_num])
@@ -93,7 +93,7 @@ model Problem {
 
 model AssignmentSubmission {
   id           Int      @id @default(autoincrement())
-  student_id   Int
+  student_id   String
   assignmentId Int
   isCompleted  Boolean  @default(false)
   submittedAt  DateTime @default(now())
@@ -111,7 +111,7 @@ model AssignmentSubmission {
 
 model ProblemSubmission {
   id           Int      @id @default(autoincrement())
-  student_id   Int
+  student_id   String
   assignmentId Int
   problemId    Int
   isCompleted  Boolean  @default(false)
@@ -133,7 +133,7 @@ model ProblemSubmission {
 // Latest-only code submission per student–assignment–problem
 model ProblemCodeSubmission {
   id           Int      @id @default(autoincrement())
-  student_id   Int
+  student_id   String
   assignmentId Int
   problemId    Int
   language     String   @db.VarChar(64)
