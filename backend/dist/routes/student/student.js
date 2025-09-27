@@ -1,36 +1,41 @@
-import { Router } from 'express';
-import { runCode } from '../../lib/codeRunner';
-import { authenticate } from '../../middleware/authenticate';
-import { prisma } from '../../prisma/prisma';
-import z from 'zod';
-const studentRouter = Router();
-const submitSchema = z.object({
-    studentId: z.number().int(),
-    assignmentId: z.number().int(),
-    problemId: z.number().int(),
-    language: z.string().min(1),
-    code: z.string().min(1),
-    input: z.string().optional()
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const codeRunner_1 = require("../../lib/codeRunner");
+const authenticate_1 = require("../../middleware/authenticate");
+const prisma_1 = require("../../prisma/prisma");
+const zod_1 = __importDefault(require("zod"));
+const studentRouter = (0, express_1.Router)();
+const submitSchema = zod_1.default.object({
+    studentId: zod_1.default.string(),
+    assignmentId: zod_1.default.number().int(),
+    problemId: zod_1.default.number().int(),
+    language: zod_1.default.string().min(1),
+    code: zod_1.default.string().min(1),
+    input: zod_1.default.string().optional()
 });
 // Join a class
-studentRouter.post('/join', authenticate, async (req, res) => {
+studentRouter.post('/join', authenticate_1.authenticate, async (req, res) => {
     const joinCode = req.body.joinCode;
     const roll_num = req.body.roll_num;
     if (!roll_num || !joinCode) {
         return res.status(400).json({ message: 'Missing studentId or joinCode' });
     }
     try {
-        const foundClass = await prisma.class.findUnique({ where: { joinCode } });
+        const foundClass = await prisma_1.prisma.class.findUnique({ where: { joinCode } });
         if (!foundClass) {
             return res.status(404).json({ message: 'Class with provided join code not found' });
         }
-        const existingEnrollment = await prisma.enrollment.findFirst({
+        const existingEnrollment = await prisma_1.prisma.enrollment.findFirst({
             where: { student_id: roll_num, class_id: foundClass.class_id }
         });
         if (existingEnrollment) {
             return res.status(409).json({ message: 'Already enrolled in this class' });
         }
-        await prisma.enrollment.create({
+        await prisma_1.prisma.enrollment.create({
             data: { student_id: roll_num, class_id: foundClass.class_id }
         });
         return res.status(200).json({ message: 'Enrolled successfully', class: foundClass });
@@ -41,10 +46,10 @@ studentRouter.post('/join', authenticate, async (req, res) => {
     }
 });
 // Get student's classes
-studentRouter.get('/:id/classes', authenticate, async (req, res) => {
-    const studentId = parseInt(req.params.id);
+studentRouter.get('/:id/classes', authenticate_1.authenticate, async (req, res) => {
+    const studentId = req.params.id;
     try {
-        const enrolledClasses = await prisma.enrollment.findMany({
+        const enrolledClasses = await prisma_1.prisma.enrollment.findMany({
             where: { student_id: studentId },
             include: {
                 class: {
@@ -60,10 +65,10 @@ studentRouter.get('/:id/classes', authenticate, async (req, res) => {
     }
 });
 // Get assignments for a class
-studentRouter.get('/class/:id/assignments', authenticate, async (req, res) => {
+studentRouter.get('/class/:id/assignments', authenticate_1.authenticate, async (req, res) => {
     const classId = parseInt(req.params.id);
     try {
-        const assignments = await prisma.assignment.findMany({
+        const assignments = await prisma_1.prisma.assignment.findMany({
             where: { classId },
             include: { problems: true }
         });
@@ -74,10 +79,10 @@ studentRouter.get('/class/:id/assignments', authenticate, async (req, res) => {
     }
 });
 // Get a problem
-studentRouter.get('/assignment/problem/:id', authenticate, async (req, res) => {
+studentRouter.get('/assignment/problem/:id', authenticate_1.authenticate, async (req, res) => {
     try {
         const problemId = parseInt(req.params.id);
-        const problem = await prisma.problem.findUnique({ where: { id: problemId } });
+        const problem = await prisma_1.prisma.problem.findUnique({ where: { id: problemId } });
         res.json(problem);
     }
     catch (err) {
@@ -86,13 +91,13 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req, res) => {
     }
 });
 // Run a problem (no persistence beyond ProblemSubmission mark)
-studentRouter.post('/:assid/problem/:id/run', authenticate, async (req, res) => {
+studentRouter.post('/:assid/problem/:id/run', authenticate_1.authenticate, async (req, res) => {
     const problemId = parseInt(req.params.id);
     const assignmentId = parseInt(req.params.assid);
     const studentId = req.body.studentId;
     const { code, language, input } = req.body;
     try {
-        const result = await runCode(language, code, input || '');
+        const result = await (0, codeRunner_1.runCode)(language, code, input || '');
         // Respond with runner result
         res.json({ output: result.output });
     }
@@ -100,7 +105,7 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req, res) => 
         return res.status(500).json({ err });
     }
     try {
-        await prisma.problemSubmission.create({
+        await prisma_1.prisma.problemSubmission.create({
             data: {
                 assignmentId,
                 student_id: studentId,
@@ -115,11 +120,11 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req, res) => 
     }
 });
 // Mark assignment submitted
-studentRouter.post('/assignment/:id', authenticate, async (req, res) => {
+studentRouter.post('/assignment/:id', authenticate_1.authenticate, async (req, res) => {
     const assignmentId = parseInt(req.params.id);
     const studentId = req.body.studentId;
     try {
-        await prisma.assignmentSubmission.create({
+        await prisma_1.prisma.assignmentSubmission.create({
             data: { assignmentId, student_id: studentId, isCompleted: true }
         });
         res.json({ message: 'Submitted' });
@@ -129,7 +134,7 @@ studentRouter.post('/assignment/:id', authenticate, async (req, res) => {
     }
 });
 // Submit code: append-only history create
-studentRouter.post('/submit-code', authenticate, async (req, res) => {
+studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res) => {
     const parsed = submitSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
@@ -138,15 +143,15 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
     try {
         // Validate linkage to avoid FK errors
         const [student, assignment, problem] = await Promise.all([
-            prisma.student.findUnique({ where: { roll_num: studentId } }),
-            prisma.assignment.findUnique({ where: { id: assignmentId } }),
-            prisma.problem.findUnique({ where: { id: problemId } })
+            prisma_1.prisma.student.findUnique({ where: { roll_num: studentId } }),
+            prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } }),
+            prisma_1.prisma.problem.findUnique({ where: { id: problemId } })
         ]);
         if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
             return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
         }
         // Append-only: create a new history row
-        const created = await prisma.problemCodeSubmission.create({
+        const created = await prisma_1.prisma.problemCodeSubmission.create({
             data: {
                 student_id: studentId,
                 assignmentId,
@@ -164,15 +169,15 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
     }
 });
 // Latest submission (derive from history)
-studentRouter.get('/problem/:problemId/latest', authenticate, async (req, res) => {
+studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = Number(req.query.studentId);
+    const studentId = String(req.query.studentId);
     if (!problemId || !assignmentId || !studentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
     try {
-        const latest = await prisma.problemCodeSubmission.findFirst({
+        const latest = await prisma_1.prisma.problemCodeSubmission.findFirst({
             where: { student_id: studentId, assignmentId, problemId },
             orderBy: { createdAt: 'desc' },
             select: { language: true, code: true, stdin: true }
@@ -188,15 +193,15 @@ studentRouter.get('/problem/:problemId/latest', authenticate, async (req, res) =
     }
 });
 // History list
-studentRouter.get('/problem/:problemId/submissions', authenticate, async (req, res) => {
+studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = Number(req.query.studentId);
+    const studentId = String(req.query.studentId);
     if (!problemId || !assignmentId || !studentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
     try {
-        const rows = await prisma.problemCodeSubmission.findMany({
+        const rows = await prisma_1.prisma.problemCodeSubmission.findMany({
             where: { student_id: studentId, assignmentId, problemId },
             orderBy: { createdAt: 'desc' },
             select: { id: true, language: true, code: true, stdin: true, createdAt: true }
@@ -208,4 +213,4 @@ studentRouter.get('/problem/:problemId/submissions', authenticate, async (req, r
         return res.status(500).json({ error: 'Failed to load history' });
     }
 });
-export default studentRouter;
+exports.default = studentRouter;

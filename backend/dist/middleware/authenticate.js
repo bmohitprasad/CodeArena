@@ -1,6 +1,12 @@
-import jwt from 'jsonwebtoken';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authenticate = void 0;
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const JWT_SECRET = "TOPSECRETCODE";
-export const authenticate = (req, res, next) => {
+const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader;
     if (!token) {
@@ -8,7 +14,7 @@ export const authenticate = (req, res, next) => {
         return;
     }
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
         req.user = decoded;
         next();
     }
@@ -17,3 +23,4 @@ export const authenticate = (req, res, next) => {
         return;
     }
 };
+exports.authenticate = authenticate;
