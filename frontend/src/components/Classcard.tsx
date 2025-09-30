@@ -5,13 +5,15 @@ export interface ClassCardProps {
     name: string
     joinCode: string
     user: string
+    teacher: string
 }
 
 export const Classcard: React.FC<ClassCardProps> = ({
     class_id,
     name,
     joinCode,
-    user
+    user,
+    teacher
 }) => {
     return (
         <Link 
@@ -31,6 +33,12 @@ export const Classcard: React.FC<ClassCardProps> = ({
                 <p className="text-sm text-gray-600">
                     Class ID: <span className="font-medium">{class_id}</span>
                 </p>
+                {user == "student" ? 
+                <div>
+                    <p className="text-sm text-gray-600">
+                        Teacher: <span className="font-medium">{teacher}</span>
+                    </p>
+                </div>:<div></div>}
             </div>
         </Link>
     )

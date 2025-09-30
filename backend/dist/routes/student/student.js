@@ -10,7 +10,7 @@ const prisma_1 = require("../../prisma/prisma");
 const zod_1 = __importDefault(require("zod"));
 const studentRouter = (0, express_1.Router)();
 const submitSchema = zod_1.default.object({
-    studentId: zod_1.default.string(),
+    studentId: zod_1.default.number().int(),
     assignmentId: zod_1.default.number().int(),
     problemId: zod_1.default.number().int(),
     language: zod_1.default.string().min(1),
@@ -47,7 +47,7 @@ studentRouter.post('/join', authenticate_1.authenticate, async (req, res) => {
 });
 // Get student's classes
 studentRouter.get('/:id/classes', authenticate_1.authenticate, async (req, res) => {
-    const studentId = req.params.id;
+    const studentId = Number(req.params.id);
     try {
         const enrolledClasses = await prisma_1.prisma.enrollment.findMany({
             where: { student_id: studentId },
@@ -133,46 +133,60 @@ studentRouter.post('/assignment/:id', authenticate_1.authenticate, async (req, r
         res.status(500).json({ error: err });
     }
 });
-// Submit code: append-only history create
+// strict compare
+const equalStrict = (a, b) => a === b;
+// relaxed: trim trailing spaces/newlines on each line
+const normalizeLines = (s) => s.replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/\s+$/g, ''))
+    .join('\n')
+    .trim();
+const equalNormalized = (a, b) => normalizeLines(a) === normalizeLines(b);
 studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res) => {
     const parsed = submitSchema.safeParse(req.body);
-    if (!parsed.success) {
+    if (!parsed.success)
         return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-    }
     const { studentId, assignmentId, problemId, language, code, input } = parsed.data;
-    try {
-        // Validate linkage to avoid FK errors
-        const [student, assignment, problem] = await Promise.all([
-            prisma_1.prisma.student.findUnique({ where: { roll_num: studentId } }),
-            prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } }),
-            prisma_1.prisma.problem.findUnique({ where: { id: problemId } })
-        ]);
-        if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
-            return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
-        }
-        // Append-only: create a new history row
-        const created = await prisma_1.prisma.problemCodeSubmission.create({
-            data: {
-                student_id: studentId,
-                assignmentId,
-                problemId,
-                language,
-                code,
-                stdin: input ?? null
-            }
+    // Load entities
+    const [student, assignment, problem] = await Promise.all([
+        prisma_1.prisma.student.findUnique({ where: { roll_num: Number(studentId) } }),
+        prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } }),
+        prisma_1.prisma.problem.findUnique({ where: { id: problemId } })
+    ]);
+    if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
+        return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
+    }
+    // Run the code and get stdout
+    const result = await (0, codeRunner_1.runCode)(language, code, input || '');
+    const actual = (result?.output ?? '').toString();
+    const expected = (problem.expectedOutput ?? '').toString();
+    // Choose comparison strategy
+    const ok = equalNormalized(actual, expected); // or equalStrict
+    if (!ok) {
+        return res.status(422).json({
+            error: 'Output does not match expected',
+            actual,
+            expected
         });
-        return res.status(201).json({ id: created.id, status: 'saved' });
     }
-    catch (e) {
-        console.error('submit-code error:', e?.code, e?.message, e);
-        return res.status(500).json({ error: e?.message || 'Failed to store submission' });
-    }
+    // Persist only when matched
+    const created = await prisma_1.prisma.problemCodeSubmission.create({
+        data: {
+            student_id: Number(studentId),
+            assignmentId,
+            problemId,
+            language,
+            code,
+            stdin: input ?? null
+        }
+    });
+    return res.status(201).json({ id: created.id, status: 'saved' });
 });
 // Latest submission (derive from history)
 studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = String(req.query.studentId);
+    const studentId = Number(req.query.studentId);
     if (!problemId || !assignmentId || !studentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
@@ -196,7 +210,7 @@ studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, asy
 studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = String(req.query.studentId);
+    const studentId = Number(req.query.studentId);
     if (!problemId || !assignmentId || !studentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
@@ -212,5 +226,34 @@ studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate
         console.error('history error:', e?.code, e?.message);
         return res.status(500).json({ error: 'Failed to load history' });
     }
+});
+studentRouter.get('/assignment/:assignmentId/problem-status', authenticate_1.authenticate, async (req, res) => {
+    const assignmentId = Number(req.params.assignmentId);
+    const studentId = Number(req.query.studentId);
+    if (!assignmentId || !studentId) {
+        return res.status(400).json({ error: 'Missing ids' });
+    }
+    // Find all problem IDs in this assignment
+    const problems = await prisma_1.prisma.problem.findMany({
+        where: { assignmentId },
+        select: { id: true }
+    });
+    const problemIds = problems.map(p => p.id);
+    if (problemIds.length === 0) {
+        return res.json({ status: [] });
+    }
+    // Any submission history counts as submitted
+    const submissions = await prisma_1.prisma.problemCodeSubmission.findMany({
+        where: {
+            assignmentId,
+            student_id: studentId,
+            problemId: { in: problemIds }
+        },
+        select: { problemId: true },
+        distinct: ['problemId']
+    });
+    const set = new Set(submissions.map(s => s.problemId));
+    const status = problemIds.map(pid => ({ problemId: pid, isSubmitted: set.has(pid) }));
+    return res.json({ status });
 });
 exports.default = studentRouter;

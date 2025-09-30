@@ -64,7 +64,8 @@ export const StudentClasses = () => {
                                           user = "student"
                                           class_id={c.class_id}
                                           name={c.class.name}
-                                          joinCode={c.class.teacher.name}
+                                          joinCode={c.class.joinCode}
+                                          teacher={c.class.teacher.name}
                                       />
                                   </div>
                               ))}

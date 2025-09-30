@@ -44,7 +44,7 @@ const StudentAuth: React.FC = () => {
       const token = response.data.jwt;
       const studentId = response.data.roll_num;
       localStorage.setItem('jwt', token);
-      localStorage.setItem('studentId', String(studentId));
+      localStorage.setItem('studentId', studentId);
 
       navigate('/student/classes');
     } catch (err: any) {

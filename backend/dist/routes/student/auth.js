@@ -11,13 +11,13 @@ const prisma_1 = require("../../prisma/prisma");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const studentAuthRouter = (0, express_2.Router)();
 const signupInput = zod_1.default.object({
-    roll_num: zod_1.default.string(),
+    roll_num: zod_1.default.coerce.number().int(),
     password: zod_1.default.string(),
     name: zod_1.default.string(),
     branch: zod_1.default.string()
 });
 const signinInput = zod_1.default.object({
-    roll_num: zod_1.default.string(),
+    roll_num: zod_1.default.coerce.number().int(),
     password: zod_1.default.string(),
 });
 const JWT_SECRET = "TOPSECRETCODE";
@@ -61,10 +61,11 @@ studentAuthRouter.post('/signin', async (req, res) => {
         return res.status(411).json({ message: "Inputs not correct" });
     }
     const body = parseResult.data;
+    const roll = Number(body.roll_num);
     try {
         const user = await prisma_1.prisma.student.findFirst({
             where: {
-                roll_num: body.roll_num
+                roll_num: roll
             },
         });
         if (!user) {

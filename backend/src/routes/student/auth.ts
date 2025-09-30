@@ -6,17 +6,19 @@ import { prisma } from '../../prisma/prisma';
 import bcrypt from 'bcrypt';
 
 const studentAuthRouter = Router();
+
 const signupInput = z.object({
-  roll_num: z.string(),
+  roll_num: z.coerce.number().int(),
   password: z.string(),
   name: z.string(),
   branch: z.string()
 });
 
 const signinInput = z.object({
-  roll_num: z.string(),
+  roll_num: z.coerce.number().int(),
   password: z.string(),
 });
+
 
 export type SignupInput = z.infer<typeof signupInput>;
 export type SigninInput = z.infer<typeof signinInput>;
@@ -74,11 +76,12 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   }
 
   const body = parseResult.data;
+  const roll = Number(body.roll_num)
 
   try {
     const user = await prisma.student.findFirst({
       where: {
-        roll_num: body.roll_num
+        roll_num: roll
       },
     });
 

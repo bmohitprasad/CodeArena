@@ -6,7 +6,6 @@ import { teacherClasses } from "../../hooks"
 import { Sidebar } from "../../components/Sidebar"
 import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
-// import { Dialog, DialogContent, DialogTrigger } from "../../components/ui/Dialog"
 import axios from "axios"
 import { BACKEND_URL } from "../../config"
 
@@ -56,6 +55,7 @@ export const Classes = () => {
                                           user="teacher"
                                           class_id={c.class_id}
                                           name={c.name}
+                                          teacher=""
                                           joinCode={c.joinCode}
                                       />
                                   </div>
