@@ -4,11 +4,14 @@ import { Assignmentcard } from "../../components/AssignmentCard";
 import { AssignmentCardSkeleton } from "../../components/skeleton/AssignmentCardSkeleton";
 import { Assignments} from "../../hooks";
 import { useParams } from "react-router-dom";
+import ClassroomChat from "../../components/ClassroomChat";
 
 export const StudentAssignments = () => {
   const { id } = useParams<{ id: string }>();
   const classId = parseInt(id || "0");
   const { loading, assignments } = Assignments({ class_id: classId });
+
+  const token = localStorage.getItem('jwt') || '';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
@@ -44,8 +47,16 @@ export const StudentAssignments = () => {
                 />
               ))}
             </div>
+            
           )}
         </main>
+        {/* // After the assignments list */}
+          {/* <div className="mt-8">
+            <h2 className="text-2xl font-bold text-[#2E3A59] mb-3">Classroom Chat</h2>
+            <div className="max-w-4xl">
+              <ClassroomChat roomId={`class-${classId}`} token={token} />
+            </div>
+          </div> */}
       </div>
     </div>
   );

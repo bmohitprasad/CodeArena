@@ -12,6 +12,7 @@ import { Input } from "../../components/ui/Input";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, PlusCircle } from "lucide-react";
 import { Textarea } from "../../components/ui/TextArea";
+import ClassroomChat from "../../components/ClassroomChat";
 
 export const TeacherAssignments = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,10 +20,11 @@ export const TeacherAssignments = () => {
   const { loading, assignments } = Assignments({ class_id: classId });
   const { loadingStudents, enrolledStudents } = Enrolled({ class_id: classId });
 
-    const [showCreateBox, setShowCreateBox] = useState(false);
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [deadline, setDeadline] = useState("");
+  const [showCreateBox, setShowCreateBox] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const token = localStorage.getItem('jwt') || '';
 
   const navigate = useNavigate();
 
@@ -173,6 +175,14 @@ export const TeacherAssignments = () => {
                 ))}
           </div>
         </main>
+        {/* // After the assignments list
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-[#2E3A59] mb-3">Classroom Chat</h2>
+          <div className="max-w-4xl">
+            <ClassroomChat roomId={`class-${classId}`} token={token} />
+          </div>
+        </div> */}
+
       </div>
     </div>
   );
