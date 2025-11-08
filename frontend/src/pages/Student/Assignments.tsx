@@ -4,14 +4,14 @@ import { Assignmentcard } from "../../components/AssignmentCard";
 import { AssignmentCardSkeleton } from "../../components/skeleton/AssignmentCardSkeleton";
 import { Assignments} from "../../hooks";
 import { useParams } from "react-router-dom";
-import ClassroomChat from "../../components/ClassroomChat";
+// import ClassroomChat from "../../components/ClassroomChat";
 
 export const StudentAssignments = () => {
   const { id } = useParams<{ id: string }>();
   const classId = parseInt(id || "0");
   const { loading, assignments } = Assignments({ class_id: classId });
 
-  const token = localStorage.getItem('jwt') || '';
+  // const token = localStorage.getItem('jwt') || '';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">

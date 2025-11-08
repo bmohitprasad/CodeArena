@@ -30,7 +30,7 @@ export default function ClassroomChat({ roomId, token }: { roomId: string; token
     if (!roomId || !token || connectedRef.current) return;
     connectedRef.current = true;
 
-    const origin = import.meta.env.VITE_BACKEND_ORIGIN ?? window.location.origin;
+    // const origin = import.meta.env.VITE_BACKEND_ORIGIN ?? window.location.origin;
 
     const wsOrigin = window.location.origin.replace(/^http/, 'ws');
     const url = `${wsOrigin}/api/chat?room=${encodeURIComponent(roomId)}&token=${encodeURIComponent(token)}`;

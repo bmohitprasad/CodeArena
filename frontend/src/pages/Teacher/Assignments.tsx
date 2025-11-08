@@ -12,7 +12,7 @@ import { Input } from "../../components/ui/Input";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, PlusCircle } from "lucide-react";
 import { Textarea } from "../../components/ui/TextArea";
-import ClassroomChat from "../../components/ClassroomChat";
+// import ClassroomChat from "../../components/ClassroomChat";
 
 export const TeacherAssignments = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +24,7 @@ export const TeacherAssignments = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const token = localStorage.getItem('jwt') || '';
+  // const token = localStorage.getItem('jwt') || '';
 
   const navigate = useNavigate();
 
