@@ -379,7 +379,7 @@ export default function CodeEditor() {
             >
               <div
                 ref={gutterRef}
-                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden"
+                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden mr-2"
                 style={{
                   minWidth: 36,
                   fontFamily:
@@ -403,7 +403,7 @@ export default function CodeEditor() {
                 onChange={(e) => setCode(e.target.value)}
                 onScroll={onScrollTextarea}
                 onKeyDown={handleKeyDown}
-                className="flex-1 font-mono text-xs bg-[#F8FAFC] outline-none"
+                className="flex-1 ml-2 font-mono text-xs bg-[#F8FAFC] outline-none"
                 style={{
                   resize: "vertical",
                   fontFamily:
