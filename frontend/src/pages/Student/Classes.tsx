@@ -31,9 +31,8 @@ export const StudentClasses = () => {
           ).then(() => {
             setJoinCode(""); 
         });
-
-        navigate("/student/classes")
-    }
+        location.reload();
+}
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
