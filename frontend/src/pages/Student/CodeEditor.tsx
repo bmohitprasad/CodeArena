@@ -1,5 +1,4 @@
 // src/pages/student/CodeEditor.tsx
-
 import { useState, useMemo, useEffect, useId, useRef } from "react";
 import {
   SingleProblem,
@@ -9,7 +8,7 @@ import {
   useSubmissionHistory
 } from "../../hooks";
 import { Appbar } from "../../components/Appbar";
-  import { Sidebar } from "../../components/Sidebar";
+import { Sidebar } from "../../components/Sidebar";
 import { useParams } from "react-router-dom";
 
 type HistoryItem = {
@@ -28,21 +27,14 @@ const LANGUAGE_TEMPLATES: Record<string, string> = {
 };
 
 export default function CodeEditor() {
-  // Identity and route
   const studentId = useMemo(() => Number(localStorage.getItem("studentId") || 0), []);
   const { id } = useParams<{ id: string }>();
   const problemId = useMemo(() => parseInt(id || "0", 10), [id]);
 
-  // Fetch problem to get assignmentId
   const singleProblem = SingleProblem({ problem_id: problemId });
   const problemObj = (singleProblem.problem as any) || {};
-  const assignmentId = useMemo(
-    () => problemObj?.assignmentId || 0,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [singleProblem.problem]
-  );
+  const assignmentId = useMemo(() => problemObj?.assignmentId || 0, [singleProblem.problem]);
 
-  // Local editor state (defaults)
   const [code, setCode] = useState("print('hello world')");
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState("python");
@@ -50,11 +42,9 @@ export default function CodeEditor() {
   const [editorRows, setEditorRows] = useState(25);
   const [previewId, setPreviewId] = useState<number | null>(null);
 
-  // Run and Submit hooks
   const { runCode, output, loading, error } = useRunCode();
   const { submitCode, submitting, submitError, submitOk } = useSubmitCode();
 
-  // Latest submission hydrate after assignmentId is known
   const idsReady =
     !!studentId && !!assignmentId && !!problemId && !Number.isNaN(assignmentId) && !Number.isNaN(problemId);
 
@@ -64,31 +54,26 @@ export default function CodeEditor() {
     idsReady ? problemId : 0
   );
 
-  // Submission history (most recent first)
   const { loadingHistory, history, historyError, refreshHistory } = useSubmissionHistory(
     idsReady ? studentId : 0,
     idsReady ? assignmentId : 0,
     idsReady ? problemId : 0
   );
 
-  // Hydrate editor from latest once fetched
   useEffect(() => {
     if (!loadingLatest && latest && idsReady) {
       setLanguage(latest.language || "python");
       setCode(latest.code || LANGUAGE_TEMPLATES["python"]);
       setInput(latest.stdin || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingLatest, latest, idsReady]);
 
-  // Expected output from problem
   const expected: string = problemObj?.expectedOutput || "";
 
-  // Track last run output from hook state
   const [lastRunOutput, setLastRunOutput] = useState<string>("");
 
   useEffect(() => {
-    if (loading) return; // avoid stale interim values
+    if (loading) return;
     const text =
       typeof output === "string"
         ? output
@@ -98,11 +83,7 @@ export default function CodeEditor() {
     setLastRunOutput(text);
   }, [output, error, loading]);
 
-  // Normalize helper shared by compare and diff
-  const normalize = (s: string) =>
-    (s ?? "")
-      .replace(/\r\n/g, "\n");
-
+  const normalize = (s: string) => (s ?? "").replace(/\r\n/g, "\n");
   const trimLinesRight = (s: string) =>
     normalize(s)
       .split("\n")
@@ -110,17 +91,11 @@ export default function CodeEditor() {
       .join("\n")
       .trim();
 
-  // Compare last run vs expected (trim trailing spaces and EOLs)
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
-
-  // Gate submit on match
   const canSubmit =
     !submitting && !loadingLatest && idsReady && !!language && !!code.trim() && matches;
 
-  // Run and Submit handlers
-  const handleRun = async () => {
-    await runCode(code, language, input);
-  };
+  const handleRun = async () => await runCode(code, language, input);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -146,14 +121,13 @@ export default function CodeEditor() {
     return <pre className={`whitespace-pre-wrap ${wrap ? "" : "whitespace-pre"}`}>{text}</pre>;
   };
 
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-  if (e.key === "Tab") {
+    if (e.key === "Tab") {
       e.preventDefault();
       const target = e.currentTarget;
       const start = target.selectionStart;
       const end = target.selectionEnd;
-      const indent = "    "; // 4 spaces
+      const indent = "    ";
       const newValue = code.slice(0, start) + indent + code.slice(end);
       setCode(newValue);
       requestAnimationFrame(() => {
@@ -164,13 +138,11 @@ export default function CodeEditor() {
 
   const gutterRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-
   const onScrollTextarea = () => {
     if (gutterRef.current && taRef.current) {
       gutterRef.current.scrollTop = taRef.current.scrollTop;
     }
   };
-
 
   const initialHydrating = !assignmentId || loadingLatest;
 
@@ -183,12 +155,9 @@ export default function CodeEditor() {
           {/* Problem + History Panel */}
           <section className="col-span-4">
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 top-5 h-fit max-h-[85vh] overflow-auto shadow-sm mb-4">
-              <h1 className="text-xl font-semibold mb-2">
-                {problemObj?.title || "Problem"}
-              </h1>
-              <p className="text-sm leading-6 text-[#334155]">
-                {problemObj?.content || ""}
-              </p>
+              <h1 className="text-xl font-semibold mb-2">{problemObj?.title || "Problem"}</h1>
+              <p className="text-sm leading-6 text-[#334155]">{problemObj?.content || ""}</p>
+
               <div className="mt-6">
                 <h2 className="text-sm font-semibold text-[#475569]">Expected Output</h2>
                 <pre className="mt-1 bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg p-3 text-[#0F172A] overflow-auto">
@@ -204,28 +173,29 @@ export default function CodeEditor() {
               </div>
             </div>
 
+            {/* Input box */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-3 shadow-sm mb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#475569]">Input</h3>
-                  <button
-                    className="text-xs text-[#2563EB] hover:underline"
-                    onClick={() => setInput("")}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <textarea
-                  rows={2}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="w-full mt-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-3 font-mono text-sm outline-none focus:ring-2 focus:ring-[#2563EB]"
-                  placeholder="stdin"
-                  spellCheck={false}
-                  disabled={initialHydrating}
-                />
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[#475569]">Input</h3>
+                <button
+                  className="text-xs text-[#2563EB] hover:underline"
+                  onClick={() => setInput("")}
+                >
+                  Clear
+                </button>
+              </div>
+              <textarea
+                rows={2}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="w-full mt-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-3 font-mono text-sm outline-none focus:ring-2 focus:ring-[#2563EB]"
+                placeholder="stdin"
+                spellCheck={false}
+                disabled={initialHydrating}
+              />
             </div>
 
-            {/* Actions */}
+            {/* Run & Submit */}
             <div className="flex justify-between mb-4">
               <button
                 onClick={handleRun}
@@ -253,11 +223,12 @@ export default function CodeEditor() {
               >
                 {submitting ? "Submitting..." : "Submit"}
               </button>
-
-              {submitOk && <span className="text-xs text-[#16A34A]">Saved!</span>}
-              {submitError && <span className="text-xs text-[#DC2626]">{submitError}</span>}
             </div>
-            
+
+            {submitOk && <span className="text-xs text-[#16A34A]">Saved!</span>}
+            {submitError && <span className="text-xs text-[#DC2626]">{submitError}</span>}
+
+            {/* History */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[#475569]">Submission History</h3>
@@ -278,43 +249,72 @@ export default function CodeEditor() {
               ) : (
                 <ul className="mt-3 flex flex-col gap-2">
                   {history!.map((h: HistoryItem) => (
-                    <li
-                      key={h.id}
-                      className={`p-2 rounded border ${
-                        h.id === previewId ? "border-[#2563EB]" : "border-[#E2E8F0]"
-                      } bg-[#F8FAFC] flex items-center justify-between`}
-                    >
-                      <div>
-                        <div className="text-sm">
-                          <span className="text-[#2563EB]">{h.language}</span>
-                          <span className="text-[#64748B]"> • </span>
-                          <span className="text-[#475569]">
-                            {new Date(h.createdAt).toLocaleString()}
-                          </span>
+                    <li key={h.id} className="flex flex-col">
+                      <div
+                        className={`p-2 rounded border ${
+                          h.id === previewId ? "border-[#2563EB]" : "border-[#E2E8F0]"
+                        } bg-[#F8FAFC] flex items-center justify-between`}
+                      >
+                        <div>
+                          <div className="text-sm">
+                            <span className="text-[#2563EB]">{h.language}</span>
+                            <span className="text-[#64748B]"> • </span>
+                            <span className="text-[#475569]">
+                              {new Date(h.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#64748B] line-clamp-1">
+                            {h.code.slice(0, 100).replace(/\n/g, " ")}
+                            {h.code.length > 100 ? "…" : ""}
+                          </div>
                         </div>
-                        <div className="text-xs text-[#64748B] line-clamp-1">
-                          {h.code.slice(0, 100).replace(/\n/g, " ")}
-                          {h.code.length > 100 ? "…" : ""}
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#2563EB]"
+                            onClick={() =>
+                              setPreviewId((prev) => (prev === h.id ? null : h.id))
+                            }
+                          >
+                            {previewId === h.id ? "Hide" : "Preview"}
+                          </button>
+                          <button
+                            className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#16A34A]"
+                            onClick={() => {
+                              setLanguage(h.language || "python");
+                              setCode(h.code || LANGUAGE_TEMPLATES["python"]);
+                              setInput(h.stdin || "");
+                            }}
+                          >
+                            Load
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#2563EB]"
-                          onClick={() => setPreviewId(previewId === h.id ? null : h.id)}
-                        >
-                          {previewId === h.id ? "Hide" : "Preview"}
-                        </button>
-                        <button
-                          className="text-xs px-2 py-1 border border-[#CBD5E1] rounded text-[#16A34A]"
-                          onClick={() => {
-                            setLanguage(h.language || "python");
-                            setCode(h.code || LANGUAGE_TEMPLATES["python"]);
-                            setInput(h.stdin || "");
-                          }}
-                        >
-                          Load
-                        </button>
-                      </div>
+
+                      {/* PREVIEW SECTION */}
+                      {previewId === h.id && (
+                        <div className="mt-2 p-3 bg-white border border-[#E2E8F0] rounded-lg text-xs">
+                          <div className="mb-2 text-[11px] text-[#64748B] flex items-center justify-between">
+                            <span>
+                              {h.language} • {new Date(h.createdAt).toLocaleString()}
+                            </span>
+                            <span className="text-[10px]">
+                              {h.stdin ? "Has stdin" : "No stdin"}
+                            </span>
+                          </div>
+                          <pre className="max-h-40 overflow-auto font-mono text-xs whitespace-pre-wrap bg-[#F8FAFC] p-2 rounded">
+{h.code}
+                          </pre>
+                          {h.stdin && (
+                            <div className="mt-2">
+                              <div className="text-[11px] text-[#475569] mb-1">Stdin</div>
+                              <pre className="max-h-20 overflow-auto font-mono text-xs whitespace-pre-wrap bg-[#F8FAFC] p-2 rounded">
+{h.stdin}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -322,7 +322,7 @@ export default function CodeEditor() {
             </div>
           </section>
 
-          {/* Editor + IO Panel */}
+          {/* Editor + Output */}
           <section className="col-span-8 flex flex-col gap-5">
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3 bg-white border border-[#E2E8F0] rounded-xl p-3 shadow-sm">
@@ -366,63 +366,66 @@ export default function CodeEditor() {
                 <span className="text-xs text-[#64748B]">Loading editor state…</span>
               )}
               {latestError && !loadingLatest && (
-                <span className="text-xs text-[#EA580C]">Using defaults (previous not found)</span>
+                <span className="text-xs text-[#EA580C]">
+                  Using defaults (previous not found)
+                </span>
               )}
             </div>
 
             {/* Editor */}
-            <div className="flex border border-[#CBD5E1] rounded-lg overflow-hidden" style={{height: `${editorRows * 1.5}em`}}>
-              {/* Line number gutter */}
+            <div
+              className="flex border border-[#CBD5E1] rounded-lg overflow-hidden"
+              style={{ height: `${editorRows * 1.5}em` }}
+            >
               <div
                 ref={gutterRef}
-                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden "
+                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden"
                 style={{
                   minWidth: 36,
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                   fontSize: "13px",
-                  lineHeight: "1.5em",
-                  padding: 0,
-                  margin: 0,
+                  lineHeight: "1.5em"
                 }}
                 aria-hidden="true"
               >
-                {code.split('\n').map((_, i) =>
-                  <div className="" key={i} style={{height: "1.5em", padding: 0, margin: 0}}>{i+1}</div>
-                )}
+                {code.split("\n").map((_, i) => (
+                  <div key={i} style={{ height: "1.5em" }}>
+                    {i + 1}
+                  </div>
+                ))}
               </div>
-              {/* Code editor area */}
-              <div className="ml-2">
-              </div>
+
               <textarea
                 ref={taRef}
                 rows={editorRows}
                 value={code}
-                onChange={e => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value)}
                 onScroll={onScrollTextarea}
                 onKeyDown={handleKeyDown}
                 className="flex-1 font-mono text-xs bg-[#F8FAFC] outline-none"
                 style={{
                   resize: "vertical",
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                   fontSize: "13px",
                   lineHeight: "1.5em",
                   padding: 0,
                   margin: 0,
-                  border: "none",
-                  background: "transparent"
+                  border: "none"
                 }}
                 spellCheck={false}
                 disabled={initialHydrating}
               />
             </div>
 
-            {/* LeetCode-style collapsible Output drawer */}
-              <OutputDrawer
-                loading={loading}
-                outputEl={renderOutput()}
-                expected={expected}
-                actual={lastRunOutput}
-              />
+            {/* Output Drawer */}
+            <OutputDrawer
+              loading={loading}
+              outputEl={renderOutput()}
+              expected={expected}
+              actual={lastRunOutput}
+            />
           </section>
         </div>
       </div>
