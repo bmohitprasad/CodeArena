@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
 import axios from "axios"
 import { BACKEND_URL } from "../../config"
-import { useNavigate } from "react-router-dom"
+// import { useNavigate } from "react-router-dom"
 
 export const StudentClasses = () => {
     const [joinCode, setJoinCode] = useState("")
