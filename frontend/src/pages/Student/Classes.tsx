@@ -16,7 +16,7 @@ export const StudentClasses = () => {
     const student_id = localStorage.getItem("studentId")
     const { loadingClasses, classes} = studentClasses({student_id: Number(student_id)})
 
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const handleJoinClass = async () => {
         if (!joinCode.trim() || isJoining) return
