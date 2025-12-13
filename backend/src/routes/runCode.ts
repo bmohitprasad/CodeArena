@@ -21,42 +21,35 @@ router.post("/run-code", async (req: Request, res: Response) => {
 
   const code_b64 = Buffer.from(code, "utf8").toString("base64");
   const input_b64 = Buffer.from(input, "utf8").toString("base64");
-
-  try {
-    const ghRes = await fetch(
-      "https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          ref: "main",
-          inputs: {
-            execution_id: executionId,
-            language,
-            code_b64,
-            input_b64,
-            callback_url: "https://codearena-9051.onrender.com/api/v1/exec/callback",
-            token: process.env.EXEC_CALLBACK_SECRET
-          }
-        })
-      }
-    );
-
-    if (!ghRes.ok) {
-      const text = await ghRes.text();
-      executionStore.fail(executionId, text);
-      return res.status(500).json({ error: "Dispatch failed" });
+  const ghRes = await fetch(
+    "https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: {
+          language,
+          code,
+          input: input || "",
+          callback_url: "https://codearena-9051.onrender.com/api/exec/callback",
+          token: process.env.EXEC_CALLBACK_SECRET
+        }
+      })
     }
+  );
 
-    return res.json({ executionId, status: "QUEUED" });
-  } catch (err: any) {
-    executionStore.fail(executionId, err.message);
-    return res.status(500).json({ error: "Execution service unavailable" });
+  if (!ghRes.ok) {
+    const text = await ghRes.text();
+    throw new Error(text);
   }
+
+  res.json({ status: "queued" });
+
 });
 
 export default router;
