@@ -205,36 +205,76 @@ export const studentClasses = ({ student_id }: { student_id: number }) => {
 };
 
 export const useRunCode = () => {
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const runCode = async (code: string, language: string, input: string = '') => {
+  const runCode = async (
+    code: string,
+    language: string,
+    input: string = ""
+  ) => {
     setLoading(true);
-    setError('');
-    setOutput('');
+    setError("");
+    setOutput("");
 
     try {
+      // 1️⃣ Trigger execution
       const response = await axios.post(
         `${BACKEND_URL}/api/v1/code/run-code`,
         { code, language, input },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': localStorage.getItem('jwt') || ''
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("jwt") || ""
           }
         }
       );
 
-      if (response.status === 200) {
-        setOutput(response.data.output);
-      } else {
-        setError(response.data.error || 'Something went wrong');
+      const { executionId } = response.data;
+
+      if (!executionId) {
+        throw new Error("No executionId returned");
       }
 
+      // 2️⃣ Poll for result
+      const poll = async () => {
+        try {
+          const res = await axios.get(
+            `${BACKEND_URL}/api/v1/code/result/${executionId}`,
+            {
+              headers: {
+                Authorization: localStorage.getItem("jwt") || ""
+              }
+            }
+          );
+
+          const data = res.data;
+
+          if (data.status === "DONE") {
+            setOutput(data.output || "");
+            setLoading(false);
+          } else {
+            // still running → poll again
+            setTimeout(poll, 1200);
+          }
+        } catch (e: any) {
+          setError(
+            e.response?.data?.error ||
+              e.message ||
+              "Failed while fetching result"
+          );
+          setLoading(false);
+        }
+      };
+
+      poll();
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Request failed');
-    } finally {
+      setError(
+        err.response?.data?.error ||
+          err.message ||
+          "Failed to start execution"
+      );
       setLoading(false);
     }
   };
