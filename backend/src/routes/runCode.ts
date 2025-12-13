@@ -19,23 +19,26 @@ router.post("/run-code", async (req: Request, res: Response) => {
   executionStore.create(executionId);
   executionStore.setRunning(executionId);
 
+  // ✅ BASE64 encode (MANDATORY)
   const code_b64 = Buffer.from(code, "utf8").toString("base64");
   const input_b64 = Buffer.from(input, "utf8").toString("base64");
+
   const ghRes = await fetch(
     "https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches",
     {
       method: "POST",
       headers: {
-        Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+        Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
         ref: "main",
         inputs: {
+          execution_id: executionId,
           language,
-          code,
-          input: input || "",
+          code_b64,
+          input_b64,
           callback_url: "https://codearena-9051.onrender.com/api/exec/callback",
           token: process.env.EXEC_CALLBACK_SECRET
         }
@@ -45,11 +48,14 @@ router.post("/run-code", async (req: Request, res: Response) => {
 
   if (!ghRes.ok) {
     const text = await ghRes.text();
-    throw new Error(text);
+    executionStore.fail(executionId, text);
+    return res.status(500).json({ error: "Dispatch failed" });
   }
 
-  res.json({ status: "queued" });
-
+  return res.json({
+    executionId,
+    status: "QUEUED"
+  });
 });
 
 export default router;
