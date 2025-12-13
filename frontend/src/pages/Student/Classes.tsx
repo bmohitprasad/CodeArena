@@ -55,48 +55,56 @@ export const StudentClasses = () => {
             <div className="flex flex-1">
                 <Sidebar user="student"/>
                 <div className="flex-1 p-6 space-y-6">
-                    {/* Create Class */}
-                    <div className="flex gap-2">
+                    {/* Join Class */}
+                    <div className="flex gap-2 items-start">
                         <Input
                             placeholder="Class Code"
                             value={joinCode}
                             onChange={(e) => {
-                                setJoinCode(e.target.value)
+                            setJoinCode(e.target.value)
                             }}
                         />
+
                         <Button
-                          onClick={handleJoinClass}
-                          disabled={isJoining || !joinCode.trim()}
+                            onClick={handleJoinClass}
+                            disabled={isJoining || !joinCode.trim()}
                         >
-                          {isJoining ? (
-                              <span className="inline-flex items-center">
-                                  <svg
-                                      className="animate-spin h-4 w-4 mr-2"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                  >
-                                      <circle
-                                          className="opacity-25"
-                                          cx="12"
-                                          cy="12"
-                                          r="10"
-                                          stroke="currentColor"
-                                          strokeWidth="4"
-                                      />
-                                      <path
-                                          className="opacity-75"
-                                          fill="currentColor"
-                                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                      />
-                                  </svg>
-                                  Joining...
-                              </span>
-                          ) : (
-                              "Join"
-                          )}
+                            {isJoining ? (
+                            <span className="inline-flex items-center">
+                                <svg
+                                className="animate-spin h-4 w-4 mr-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                >
+                                <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                />
+                                <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                />
+                                </svg>
+                                Joining...
+                            </span>
+                            ) : (
+                            "Join"
+                            )}
                         </Button>
-                    </div>
+                        <p className="mt-1 text-md text-slate-500 justif-center">
+                            Demo code:&nbsp;
+                            <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                                1AYLBP
+                            </span>
+                        </p>
+                        </div>
+
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {loadingClasses

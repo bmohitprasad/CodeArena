@@ -172,7 +172,7 @@ const StudentAuth: React.FC = () => {
                 <input
                   type="text"
                   name="roll_num"
-                  placeholder="Roll number"
+                  placeholder="Roll number (any 6 digits)"
                   inputMode="numeric"
                   className="w-full rounded-md border px-4 py-2"
                   value={postInputs.roll_num}
@@ -184,7 +184,7 @@ const StudentAuth: React.FC = () => {
                 <input
                   type="password"
                   name="password"
-                  placeholder="Password"
+                  placeholder="Password (use @)"
                   className="w-full rounded-md border px-4 py-2"
                   value={postInputs.password}
                   onChange={handleChange}
