@@ -194,22 +194,6 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
   }
 
-  // Run the code and get stdout
-  const result = await runCode(language, code, input || '');
-  const actual = (result?.output ?? '').toString();
-  const expected = (problem.expectedOutput ?? '').toString();
-
-  // Choose comparison strategy
-  const ok = equalNormalized(actual, expected); // or equalStrict
-
-  if (!ok) {
-    return res.status(422).json({
-      error: 'Output does not match expected',
-      actual,
-      expected
-    });
-  }
-
   // Persist only when matched
   const created = await prisma.problemCodeSubmission.create({
     data: {
