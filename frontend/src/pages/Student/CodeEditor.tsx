@@ -97,15 +97,18 @@ export default function CodeEditor() {
       .trim();
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
-  console.log(matches);
+  // console.log("lastRunOutput", lastRunOutput);
+  // console.log("expected", expected);
+  // console.log("matches", matches)
 
-  const canSubmit = !submitting && matches;
+
+  // const canSubmit = !submitting && matches;
 
 
   const handleRun = async () => await runCode(code, language, input);
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!matches) return;
     await submitCode({ studentId, assignmentId, problemId, language, code, input });
     refreshHistory?.();
   };
@@ -177,7 +180,7 @@ export default function CodeEditor() {
                 <div className="mt-2 text-xs">
                   {lastRunOutput
                     ? matches
-                      ? <span className="text-[#16A34A]">Last run matches expected ✓</span>
+                      ? <span className="text-[#16A34A]">Last run matches expected</span>
                       : <span className="text-[#DC2626]">Last run does not match</span>
                     : <span className="text-[#64748B]">Run code to validate against expected</span>}
                 </div>
@@ -219,7 +222,7 @@ export default function CodeEditor() {
               <button
                 onClick={handleSubmit}
                 className="border rounded-lg bg-[#16A34A] hover:bg-[#12823B] text-white px-4 py-2 disabled:opacity-60"
-                disabled={!canSubmit}
+                disabled={!matches}
                 title={
                   !studentId
                     ? "Missing student ID"
