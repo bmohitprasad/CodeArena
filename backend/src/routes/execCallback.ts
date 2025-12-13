@@ -1,10 +1,8 @@
 import express, { Request, Response } from "express";
+import { executionStore } from "../lib/executionStore";
 
 const router = express.Router();
 
-/**
- * GitHub Actions → Backend callback
- */
 router.post("/callback", (req: Request, res: Response) => {
   const token = req.headers["x-exec-token"];
 
@@ -12,11 +10,18 @@ router.post("/callback", (req: Request, res: Response) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  const { output } = req.body;
+  const { executionId, output } = req.body;
 
-  console.log("Execution result:\n", output);
+  if (!executionId) {
+    return res.status(400).json({ error: "Missing executionId" });
+  }
 
-  // Map executionId → output
+  executionStore.set(executionId, {
+    status: "DONE",
+    output: output ?? ""
+  });
+
+  console.log("Execution result:", output);
 
   return res.json({ ok: true });
 });
