@@ -1,22 +1,26 @@
+// src/routes/run-code.ts
+
 import express, { Request, Response } from "express";
 import { randomUUID } from "crypto";
+import { Buffer } from "buffer";
 import { executionStore } from "../lib/executionStore";
 
-const codeRouter = express.Router();
+const router = express.Router();
 
-codeRouter.post("/run-code", async (req: Request, res: Response) => {
+router.post("/run-code", async (req: Request, res: Response) => {
   const { code, language, input = "" } = req.body;
 
   if (!code || !language) {
-    return res.status(400).json({
-      error: "Code and language are required"
-    });
+    return res.status(400).json({ error: "Code and language required" });
   }
 
   const executionId = randomUUID();
 
-  // mark execution as running
-  executionStore.set(executionId, { status: "RUNNING" });
+  executionStore.create(executionId);
+  executionStore.setRunning(executionId);
+
+  const code_b64 = Buffer.from(code, "utf8").toString("base64");
+  const input_b64 = Buffer.from(input, "utf8").toString("base64");
 
   try {
     const ghRes = await fetch(
@@ -24,7 +28,7 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
       {
         method: "POST",
         headers: {
-          Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+          Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json"
         },
@@ -33,8 +37,8 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
           inputs: {
             execution_id: executionId,
             language,
-            code,
-            input,
+            code_b64,
+            input_b64,
             callback_url:
               "https://codearena-9051.onrender.com/api/v1/exec/callback",
             token: process.env.EXEC_CALLBACK_SECRET
@@ -45,22 +49,15 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
 
     if (!ghRes.ok) {
       const text = await ghRes.text();
-      console.error("GitHub dispatch failed:", text);
-      executionStore.delete(executionId);
-      return res.status(500).json({ error: "Failed to queue execution" });
+      executionStore.fail(executionId, text);
+      return res.status(500).json({ error: "Dispatch failed" });
     }
 
-    return res.json({
-      executionId,
-      status: "queued"
-    });
-  } catch (err) {
-    console.error(err);
-    executionStore.delete(executionId);
-    return res.status(500).json({
-      error: "Execution service unavailable"
-    });
+    return res.json({ executionId, status: "QUEUED" });
+  } catch (err: any) {
+    executionStore.fail(executionId, err.message);
+    return res.status(500).json({ error: "Execution service unavailable" });
   }
 });
 
-export default codeRouter;
+export default router;
