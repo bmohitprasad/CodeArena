@@ -1,5 +1,3 @@
-// src/routes/execCallback.ts
-
 import express, { Request, Response } from "express";
 import { executionStore } from "../lib/executionStore";
 
@@ -17,7 +15,6 @@ router.post("/callback", (req: Request, res: Response) => {
   }
 
   executionStore.complete(execution_id, output || "");
-
   res.json({ ok: true });
 });
 

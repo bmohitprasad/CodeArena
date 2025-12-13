@@ -1,5 +1,3 @@
-// src/lib/executionStore.ts
-
 export type ExecutionStatus =
   | "QUEUED"
   | "RUNNING"
@@ -24,29 +22,28 @@ class ExecutionStore {
   }
 
   setRunning(id: string) {
-    const prev = this.store.get(id);
-    if (!prev) return;
-    this.store.set(id, { ...prev, status: "RUNNING" });
+    const e = this.store.get(id);
+    if (e) e.status = "RUNNING";
   }
 
   complete(id: string, output: string) {
-    const prev = this.store.get(id);
-    if (!prev) return;
-    this.store.set(id, { ...prev, status: "DONE", output });
+    const e = this.store.get(id);
+    if (e) {
+      e.status = "DONE";
+      e.output = output;
+    }
   }
 
   fail(id: string, error: string) {
-    const prev = this.store.get(id);
-    if (!prev) return;
-    this.store.set(id, { ...prev, status: "ERROR", error });
+    const e = this.store.get(id);
+    if (e) {
+      e.status = "ERROR";
+      e.error = error;
+    }
   }
 
   get(id: string) {
     return this.store.get(id);
-  }
-
-  delete(id: string) {
-    this.store.delete(id);
   }
 }
 
