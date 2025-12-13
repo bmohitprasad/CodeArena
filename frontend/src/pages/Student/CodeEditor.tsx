@@ -157,6 +157,10 @@ export default function CodeEditor() {
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 top-5 h-fit max-h-[85vh] overflow-auto shadow-sm mb-4">
               <h1 className="text-xl font-semibold mb-2">{problemObj?.title || "Problem"}</h1>
               <p className="text-sm leading-6 text-[#334155]">{problemObj?.content || ""}</p>
+              <p className="mt-2 text-sm text-amber-700 italic">
+                ⚠️ For Java, the class name must be <span className="font-semibold">Main</span>.
+              </p>
+
 
               <div className="mt-6">
                 <h2 className="text-sm font-semibold text-[#475569]">Expected Output</h2>

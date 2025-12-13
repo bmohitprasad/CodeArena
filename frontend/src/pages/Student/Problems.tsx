@@ -48,20 +48,71 @@ export const StudentProblems = () => {
     return () => { aborted = true; };
   }, [studentId, assignment_id]);
 
-  async function handleSubmitAssignment() {
+  // async function handleSubmitAssignment() {
+  //   try {
+  //     const res = await fetch(`${BACKEND_URL}/api/student/assignment/${assignment_id}`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ studentId })
+  //     });
+  //     if (!res.ok) throw new Error(`Submit failed (${res.status})`);
+  //     setSubmitted(true);
+  //     alert("Assignment submitted successfully!");
+  //   } catch (e: any) {
+  //     alert(e?.message || "Failed to submit assignment");
+  //   }
+  // }
+
+  async function safeJson(res: Response) {
+    const text = await res.text();
+
+    if (!text) return null;
+
     try {
-      const res = await fetch(`${BACKEND_URL}/api/student/assignment/${assignment_id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId })
-      });
-      if (!res.ok) throw new Error(`Submit failed (${res.status})`);
-      setSubmitted(true);
-      alert("Assignment submitted successfully!");
-    } catch (e: any) {
-      alert(e?.message || "Failed to submit assignment");
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Server returned invalid JSON");
     }
   }
+
+  const allProblemsSubmitted = useMemo(() => {
+    if (!problems || problems.length === 0) return false;
+    return problems.every((p) => statusMap[p.id] === true);
+  }, [problems, statusMap]);
+
+  async function handleSubmitAssignment() {
+  if (!allProblemsSubmitted) {
+    alert("Please submit all problems before submitting the assignment.");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("jwt"); 
+    const res = await fetch(
+      `${BACKEND_URL}/api/v1/student/assignment/${assignment_id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${token}`
+        },
+        body: JSON.stringify({ studentId })
+      }
+    );
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.error || "Submit failed");
+    }
+
+    setSubmitted(true);
+    alert("Assignment submitted successfully!");
+  } catch (err: any) {
+    alert(err.message || "Failed to submit assignment");
+  }
+}
+
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
@@ -92,15 +143,15 @@ export const StudentProblems = () => {
           <main className="grid md:grid-cols-2 gap-6">
             {loading
               ? [...Array(6)].map((_, i) => <ProblemCardSkeleton key={i} />)
-              : problems.map((p) => (
+              : problems.map((p, index) => (
                   <StudentProblemCard
                     key={p.id}
+                    serial={index + 1}      // 👈 FIX
                     id={p.id}
                     title={p.title}
                     content={p.content}
                     assignmentId={p.assignmentId}
                     expectedOutput={p.expectedOutput}
-                    // Real status: true if any submission exists for this problem
                     isSubmitted={!!statusMap[p.id]}
                   />
                 ))}

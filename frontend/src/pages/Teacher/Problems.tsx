@@ -262,9 +262,10 @@ export const TeacherProblems = () => {
           <div className="flex-1 space-y-4">
             {loading
               ? [...Array(6)].map((_, i) => <ProblemCardSkeleton key={i} />)
-              : problems.map((p) => (
+              : problems.map((p, index) => (
                   <ProblemCard
                     key={p.id}
+                    serial={index + 1}   
                     id={p.id}
                     title={p.title}
                     content={p.content}
