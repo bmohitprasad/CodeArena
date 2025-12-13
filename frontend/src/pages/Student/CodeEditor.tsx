@@ -33,7 +33,12 @@ export default function CodeEditor() {
 
   const singleProblem = SingleProblem({ problem_id: problemId });
   const problemObj = (singleProblem.problem as any) || {};
-  const assignmentId = useMemo(() => problemObj?.assignmentId || 0, [singleProblem.problem]);
+
+  const assignmentId = useMemo(() => {
+  const p = problemObj || {};
+  return Number(p.assignmentId ?? p.assignment_id ?? 0);
+}, [problemObj]);
+
 
   const [code, setCode] = useState("print('hello world')");
   const [input, setInput] = useState("");
@@ -92,8 +97,13 @@ export default function CodeEditor() {
       .trim();
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
+
   const canSubmit =
-    !submitting && !loadingLatest && idsReady && !!language && !!code.trim() && matches;
+  !submitting &&
+  idsReady &&
+  !!language &&
+  !!code.trim() &&
+  matches;
 
   const handleRun = async () => await runCode(code, language, input);
 
@@ -218,6 +228,8 @@ export default function CodeEditor() {
                     ? "Missing student ID"
                     : !assignmentId
                     ? "Missing assignment ID"
+                    : submitting
+                    ? "Submitting…"
                     : !code.trim()
                     ? "Code is empty"
                     : !matches
