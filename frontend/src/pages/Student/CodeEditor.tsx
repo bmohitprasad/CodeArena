@@ -97,6 +97,7 @@ export default function CodeEditor() {
       .trim();
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
+  console.log(matches);
 
   const canSubmit = !submitting && matches;
 
