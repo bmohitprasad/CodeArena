@@ -19,7 +19,6 @@ router.post("/run-code", async (req: Request, res: Response) => {
   executionStore.create(executionId);
   executionStore.setRunning(executionId);
 
-  // ✅ BASE64 encode (MANDATORY)
   const code_b64 = Buffer.from(code, "utf8").toString("base64");
   const input_b64 = Buffer.from(input, "utf8").toString("base64");
 
@@ -28,7 +27,7 @@ router.post("/run-code", async (req: Request, res: Response) => {
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+        Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json"
       },
