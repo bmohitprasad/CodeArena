@@ -32,7 +32,7 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
     // console.log("TOKEN VALUE:", process.env.GITHUB_EXECUTOR_TOKEN);
 
     const ghRes = await fetch(
-      "https://api.github.com/repos/bmohitprasad/codearena-executor/actions/workflows/run-code.yml/dispatches",
+      "https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches",
       {
         method: "POST",
         headers: {
