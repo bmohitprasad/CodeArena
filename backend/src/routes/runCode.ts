@@ -36,7 +36,7 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
       {
         method: "POST",
         headers: {
-          Authorization: `${process.env.GITHUB_EXECUTOR_TOKEN}`,
+          Authorization: `token ${process.env.GITHUB_EXECUTOR_TOKEN}`,
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json"
         },
@@ -47,7 +47,7 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
             code,
             input,
             callback_url:
-              "https://codearena-9051.onrender.com/api/exec/callback",
+              "https://codearena-9051.onrender.com/api/v1/exec/callback",
             token: process.env.EXEC_CALLBACK_SECRET
           }
         })
