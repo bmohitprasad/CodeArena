@@ -7,6 +7,7 @@ import studentAuthRouter from './routes/student/auth';
 import teacherAuthRouter from './routes/teacher/auth';
 import chatServer from './server/chat'; // attaches REST + ws to the same server
 import codeRouter from './routes/runCode';
+import execCallbackRouter from "./routes/execCallback";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
@@ -21,6 +22,7 @@ app.use('/api/v1/student', studentRouter);
 app.use('/api/v1/admin', teacherRouter);
 app.use('/api/v1/auth/student', studentAuthRouter);
 app.use('/api/v1/auth/admin', teacherAuthRouter);
+app.use("/api/v1/exec", execCallbackRouter);
 
 // Create single HTTP server instance
 const server = http.createServer(app);

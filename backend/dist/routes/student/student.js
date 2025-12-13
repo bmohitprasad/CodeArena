@@ -120,17 +120,36 @@ studentRouter.post('/:assid/problem/:id/run', authenticate_1.authenticate, async
     }
 });
 // Mark assignment submitted
-studentRouter.post('/assignment/:id', authenticate_1.authenticate, async (req, res) => {
-    const assignmentId = parseInt(req.params.id);
-    const studentId = req.body.studentId;
+studentRouter.post("/assignment/:id", authenticate_1.authenticate, async (req, res) => {
+    const assignmentId = Number(req.params.id);
+    const studentId = Number(req.body.studentId);
+    if (!assignmentId || !studentId) {
+        return res.status(400).json({
+            error: "assignmentId and studentId are required"
+        });
+    }
     try {
         await prisma_1.prisma.assignmentSubmission.create({
-            data: { assignmentId, student_id: studentId, isCompleted: true }
+            data: {
+                assignmentId,
+                student_id: studentId,
+                isCompleted: true
+            }
         });
-        res.json({ message: 'Submitted' });
+        return res.status(200).json({
+            message: "Submitted"
+        });
     }
     catch (err) {
-        res.status(500).json({ error: err });
+        if (err.code === "P2002") {
+            return res.status(409).json({
+                error: "Assignment already submitted"
+            });
+        }
+        console.error("Assignment submission failed:", err);
+        return res.status(500).json({
+            error: "Internal server error"
+        });
     }
 });
 // strict compare
