@@ -34,7 +34,7 @@ codeRouter.post("/run-code", async (req: Request, res: Response) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+          Authorization: `s${process.env.GITHUB_EXECUTOR_TOKEN}`,
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json"
         },
