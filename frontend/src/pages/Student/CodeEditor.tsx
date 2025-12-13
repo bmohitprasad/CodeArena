@@ -98,12 +98,8 @@ export default function CodeEditor() {
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
 
-  const canSubmit =
-  !submitting &&
-  idsReady &&
-  !!language &&
-  !!code.trim() &&
-  matches;
+  const canSubmit = !submitting && matches;
+
 
   const handleRun = async () => await runCode(code, language, input);
 
