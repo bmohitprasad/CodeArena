@@ -1,12 +1,13 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { randomUUID } from "crypto";
 import { Buffer } from "buffer";
 import { executionStore } from "../lib/executionStore";
 
 const router = express.Router();
 
-router.post("/run-code", async (req, res) => {
+router.post("/run-code", async (req: Request, res: Response) => {
   const { code, language, input = "" } = req.body;
+
   if (!code || !language) {
     return res.status(400).json({ error: "Code and language required" });
   }
@@ -15,8 +16,8 @@ router.post("/run-code", async (req, res) => {
   executionStore.create(executionId);
   executionStore.setRunning(executionId);
 
-  const code_b64 = Buffer.from(code).toString("base64");
-  const input_b64 = Buffer.from(input).toString("base64");
+  const code_b64 = Buffer.from(code, "utf8").toString("base64");
+  const input_b64 = Buffer.from(input, "utf8").toString("base64");
 
   const ghRes = await fetch(
     "https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches",

@@ -1,4 +1,8 @@
-export type ExecutionStatus = "QUEUED" | "RUNNING" | "DONE" | "ERROR";
+export type ExecutionStatus =
+  | "QUEUED"
+  | "RUNNING"
+  | "DONE"
+  | "ERROR";
 
 export type ExecutionResult = {
   status: ExecutionStatus;
@@ -19,17 +23,23 @@ class ExecutionStore {
 
   setRunning(id: string) {
     const e = this.store.get(id);
-    if (e) this.store.set(id, { ...e, status: "RUNNING" });
+    if (e) e.status = "RUNNING";
   }
 
   complete(id: string, output: string) {
     const e = this.store.get(id);
-    if (e) this.store.set(id, { ...e, status: "DONE", output });
+    if (e) {
+      e.status = "DONE";
+      e.output = output;
+    }
   }
 
   fail(id: string, error: string) {
     const e = this.store.get(id);
-    if (e) this.store.set(id, { ...e, status: "ERROR", error });
+    if (e) {
+      e.status = "ERROR";
+      e.error = error;
+    }
   }
 
   get(id: string) {
