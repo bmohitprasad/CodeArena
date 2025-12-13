@@ -39,8 +39,7 @@ router.post("/run-code", async (req: Request, res: Response) => {
             language,
             code_b64,
             input_b64,
-            callback_url:
-              "https://codearena-9051.onrender.com/api/v1/exec/callback",
+            callback_url: "https://codearena-9051.onrender.com/api/v1/exec/callback",
             token: process.env.EXEC_CALLBACK_SECRET
           }
         })
