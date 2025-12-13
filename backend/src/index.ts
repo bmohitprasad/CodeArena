@@ -15,8 +15,10 @@ const PORT = Number(process.env.PORT) || 3002;
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: "2mb" })); // REQUIRED
-app.use(express.urlencoded({ extended: false }));
+
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
+
 
 // Routers
 app.use('/api/v1/code', codeRouter);
