@@ -44,7 +44,7 @@ export default function CodeEditor() {
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState("python");
   const [wrap, setWrap] = useState(true);
-  const [editorRows, setEditorRows] = useState(25);
+  const [editorRows, setEditorRows] = useState(10);
   const [previewId, setPreviewId] = useState<number | null>(null);
 
   const { runCode, output, loading, error } = useRunCode();
