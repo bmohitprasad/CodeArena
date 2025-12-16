@@ -97,13 +97,10 @@ export const StudentClasses = () => {
                             "Join"
                             )}
                         </Button>
-                        <p className="mt-1 text-md text-slate-500 justif-center">
-                            Demo code:&nbsp;
-                            <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                                1AYLBP
-                            </span>
-                        </p>
                         </div>
+                        <p className="mt-1 text-lg text-slate-700">
+                            Use code 1AYLBP as a class code, for demo...
+                        </p>
 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
