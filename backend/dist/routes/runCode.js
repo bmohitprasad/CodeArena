@@ -4,63 +4,44 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const codeRouter = express_1.default.Router();
-// codeRouter.post('/run-code', async (req: Request, res: Response): Promise<void> => {
-//   const { code, language, input = '' } = req.body;
-//   if (!code || !language) {
-//     res.status(400).json({ error: 'Code and language are required.' });
-//     return;
-//   }
-//   try {
-//     const result = await runCode(language, code, input);
-//     res.status(200).json({ output: result.output });
-//   } catch (error: any) {
-//     res.status(500).json({ error: error.message || 'Failed to run code.' });
-//   }
-// });
-codeRouter.post("/run-code", async (req, res) => {
+const crypto_1 = require("crypto");
+const buffer_1 = require("buffer");
+const executionStore_1 = require("../lib/executionStore");
+const router = express_1.default.Router();
+router.post("/run-code", async (req, res) => {
     const { code, language, input = "" } = req.body;
     if (!code || !language) {
-        return res.status(400).json({
-            error: "Code and language are required."
-        });
+        return res.status(400).json({ error: "Code and language required" });
     }
-    try {
-        const ghRes = await fetch("https://api.github.com/repos/bmohitprasad/codearena-executor/actions/workflows/run-code.yml/dispatches", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
-                Accept: "application/vnd.github+json",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                ref: "main",
-                inputs: {
-                    language,
-                    code,
-                    input,
-                    callback_url: "https://codearena-9051.onrender.com/api/exec/callback",
-                    token: process.env.EXEC_CALLBACK_SECRET
-                }
-            })
-        });
-        if (!ghRes.ok) {
-            const text = await ghRes.text();
-            console.error("GitHub dispatch failed:", text);
-            return res.status(500).json({
-                error: "Failed to queue execution"
-            });
-        }
-        // IMPORTANT: return immediately
-        return res.json({
-            status: "queued"
-        });
+    const executionId = (0, crypto_1.randomUUID)();
+    executionStore_1.executionStore.create(executionId);
+    executionStore_1.executionStore.setRunning(executionId);
+    const code_b64 = buffer_1.Buffer.from(code, "utf8").toString("base64");
+    const input_b64 = buffer_1.Buffer.from(input, "utf8").toString("base64");
+    const ghRes = await fetch("https://api.github.com/repos/bmohitprasad/codeExecuter/actions/workflows/run-code.yml/dispatches", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.GITHUB_EXECUTOR_TOKEN}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            ref: "main",
+            inputs: {
+                execution_id: executionId,
+                language,
+                code_b64,
+                input_b64,
+                callback_url: "https://codearena-9051.onrender.com/api/v1/exec/callback",
+                token: process.env.EXEC_CALLBACK_SECRET
+            }
+        })
+    });
+    if (!ghRes.ok) {
+        const text = await ghRes.text();
+        executionStore_1.executionStore.fail(executionId, text);
+        return res.status(500).json({ error: "Dispatch failed" });
     }
-    catch (err) {
-        console.error(err);
-        return res.status(500).json({
-            error: "Execution service unavailable"
-        });
-    }
+    res.json({ executionId, status: "QUEUED" });
 });
-exports.default = codeRouter;
+exports.default = router;

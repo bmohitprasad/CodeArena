@@ -4,18 +4,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const executionStore_1 = require("../lib/executionStore");
+const buffer_1 = require("buffer");
 const router = express_1.default.Router();
-/**
- * GitHub Actions → Backend callback
- */
 router.post("/callback", (req, res) => {
-    const token = req.headers["x-exec-token"];
-    if (token !== process.env.EXEC_CALLBACK_SECRET) {
+    if (req.headers["x-exec-token"] !== process.env.EXEC_CALLBACK_SECRET) {
         return res.status(403).json({ error: "Forbidden" });
     }
-    const { output } = req.body;
-    console.log("Execution result:\n", output);
-    // Map executionId → output
-    return res.json({ ok: true });
+    const { execution_id, output_b64 } = req.body;
+    if (!execution_id || !output_b64) {
+        return res.status(400).json({ error: "Invalid payload" });
+    }
+    const output = buffer_1.Buffer.from(output_b64, "base64").toString("utf8");
+    executionStore_1.executionStore.complete(execution_id, output);
+    res.json({ ok: true });
 });
 exports.default = router;
