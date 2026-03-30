@@ -158,7 +158,9 @@ export default function CodeEditor() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col text-[#0F172A]">
-      <Appbar />
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Appbar />
+      </div>
       <div className="flex flex-1">
         <Sidebar user="student" />
         <div className="flex-1 p-5 gap-5 grid grid-cols-12">
