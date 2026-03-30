@@ -75,8 +75,7 @@ const TeacherAuth: React.FC = () => {
             </div>
 
             <p className="mt-2 text-sm text-slate-600">
-              Create classes, publish assignments, and review student code
-              submissions with version history and quick feedback tools.
+              Create classes and publish assignments.
             </p>
 
             <ul className="mt-4 space-y-2 text-sm text-slate-700">
@@ -87,10 +86,6 @@ const TeacherAuth: React.FC = () => {
               <li className="flex items-start gap-2">
                 <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500"></span>
                 Add problems with starter code and custom inputs.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500"></span>
-                View latest attempts, run outputs, and mark completion.
               </li>
             </ul>
 
@@ -236,11 +231,6 @@ const TeacherAuth: React.FC = () => {
                   </span>
                 </div>
               )}
-
-              <p className="relative mt-6 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                Use an institutional email for faster class verification and to
-                avoid access issues for students joining via code.
-              </p>
             </div>
           </section>
         </div>

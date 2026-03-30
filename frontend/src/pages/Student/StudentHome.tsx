@@ -116,9 +116,6 @@ const StudentAuth: React.FC = () => {
                     <li>Go to “Assignments” → pick a problem to solve.</li>
                     <li>Run code to test, then submit when confident.</li>
                   </ol>
-                  <p className="mt-3 text-xs text-slate-500">
-                    Tip: Keep the JWT token secure; it’s used to access class resources.
-                  </p>
                 </div>
               )}
             </div>
