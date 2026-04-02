@@ -4,9 +4,7 @@ import { Appbar } from "../../components/Appbar"
 export const SubmissionPage = () => {
   return (
       <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
-        <div className="fixed top-0 left-0 right-0 z-50 w-full">
-                <Appbar />
-            </div>
+        <Appbar />
         <div className="flex flex-1">
           <Sidebar user = "student"/>
           <div className="text-4xl p-4 font-bold text-[#2E3A59]">

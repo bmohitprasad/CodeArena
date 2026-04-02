@@ -116,9 +116,7 @@ export const StudentProblems = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
-      <div className="fixed top-0 left-0 right-0 z-50 w-full">
-                <Appbar />
-            </div>
+      <Appbar />
       <div className="flex flex-1">
         <Sidebar user="student" />
         <div className="flex-1 p-6">
