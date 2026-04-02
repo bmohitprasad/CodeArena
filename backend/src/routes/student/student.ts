@@ -94,7 +94,7 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
   }
 });
 
-// Run a problem (no persistence beyond ProblemSubmission mark)
+// Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
   const assignmentId = parseInt(req.params.assid);
@@ -194,7 +194,6 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
   }
 
-  // Persist only when matched
   const created = await prisma.problemCodeSubmission.create({
     data: {
       student_id: Number(studentId),
@@ -209,7 +208,6 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
   return res.status(201).json({ id: created.id, status: 'saved' });
 });
 
-// Latest submission (derive from history)
 studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = Number(req.params.problemId);
   const assignmentId = Number(req.query.assignmentId);
