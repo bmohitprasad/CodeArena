@@ -1,12 +1,12 @@
-import { Menu } from "lucide-react"
+import { Menu } from "lucide-react";
 
 export const Appbar = () => {
     return (
-        <header className="bg-[#2E3A59] text-white px-6 py-4 shadow-md flex items-center justify-between fixed">
+        <header className="w-full bg-[#2E3A59] text-white px-6 py-4 shadow-md flex items-center justify-between sticky top-0 z-50">
             <div className="text-2xl font-bold tracking-wide">CodeArena</div>
             <div className="md:hidden">
                 <Menu className="h-6 w-6" />
             </div>
         </header>
-    )
-}
+    );
+};
