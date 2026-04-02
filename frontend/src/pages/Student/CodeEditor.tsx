@@ -9,7 +9,6 @@ import {
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
 import { useParams } from "react-router-dom";
-import "./CodeEditor.css"; // Moved inline styles to external CSS
 
 type HistoryItem = {
   id: number;
