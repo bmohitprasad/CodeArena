@@ -29,7 +29,7 @@ export const Classes = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <div className="fixed top-0 left-0 right-0 z-50">
+            <div className="fixed top-0 left-0 right-0 z-50 w-full">
                 <Appbar />
             </div>
             <div className="flex flex-1">

@@ -1,4 +1,3 @@
-// src/pages/student/CodeEditor.tsx
 import { useState, useMemo, useEffect, useId, useRef } from "react";
 import {
   SingleProblem,
@@ -10,6 +9,7 @@ import {
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
 import { useParams } from "react-router-dom";
+import "./CodeEditor.css"; // Moved inline styles to external CSS
 
 type HistoryItem = {
   id: number;
@@ -38,7 +38,6 @@ export default function CodeEditor() {
   const p = problemObj || {};
   return Number(p.assignmentId ?? p.assignment_id ?? 0);
 }, [problemObj]);
-
 
   const [code, setCode] = useState("print('hello world')");
   const [input, setInput] = useState("");
@@ -97,13 +96,6 @@ export default function CodeEditor() {
       .trim();
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
-  // console.log("lastRunOutput", lastRunOutput);
-  // console.log("expected", expected);
-  // console.log("matches", matches)
-
-
-  // const canSubmit = !submitting && matches;
-
 
   const handleRun = async () => await runCode(code, language, input);
 
@@ -173,7 +165,6 @@ export default function CodeEditor() {
                 ⚠️ For Java, the class name must be <span className="font-semibold">Main</span>.
               </p>
 
-
               <div className="mt-6">
                 <h2 className="text-sm font-semibold text-[#475569]">Expected Output</h2>
                 <pre className="mt-1 bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg p-3 text-[#0F172A] overflow-auto">
@@ -192,7 +183,7 @@ export default function CodeEditor() {
             {/* Input box */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-3 shadow-sm mb-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#475569]">Input</h3>
+                <h3 id="stdin-heading" className="text-sm font-semibold text-[#475569]">Input</h3>
                 <button
                   className="text-xs text-[#2563EB] hover:underline"
                   onClick={() => setInput("")}
@@ -201,11 +192,14 @@ export default function CodeEditor() {
                 </button>
               </div>
               <textarea
+                id="stdin-input"
+                title="Standard Input"
+                aria-labelledby="stdin-heading"
                 rows={2}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="w-full mt-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-3 font-mono text-sm outline-none focus:ring-2 focus:ring-[#2563EB]"
-                placeholder="stdin"
+                placeholder="stdin input"
                 spellCheck={false}
                 disabled={initialHydrating}
               />
@@ -236,7 +230,7 @@ export default function CodeEditor() {
                     ? "Code is empty"
                     : !matches
                     ? "Output must match expected"
-                    : undefined
+                    : "Submit Code"
                 }
               >
                 {submitting ? "Submitting..." : "Submit"}
@@ -345,8 +339,11 @@ export default function CodeEditor() {
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3 bg-white border border-[#E2E8F0] rounded-xl p-3 shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[#475569]">Language:</span>
+                <label htmlFor="language-select" className="text-sm text-[#475569]">Language:</label>
                 <select
+                  id="language-select"
+                  title="Select Programming Language"
+                  aria-label="Select Language"
                   value={language}
                   onChange={(e) => onLanguageChange(e.target.value)}
                   className="bg-white border border-[#CBD5E1] rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
@@ -360,18 +357,22 @@ export default function CodeEditor() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-[#475569]">Wrap</label>
                 <input
                   type="checkbox"
+                  id="wrap-checkbox"
+                  title="Wrap Editor Text"
                   checked={wrap}
                   onChange={(e) => setWrap(e.target.checked)}
                 />
+                <label htmlFor="wrap-checkbox" className="text-sm text-[#475569]">Wrap</label>
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-[#475569]">Rows</label>
+                <label htmlFor="rows-input" className="text-sm text-[#475569]">Rows</label>
                 <input
                   type="number"
+                  id="rows-input"
+                  title="Number of Editor Rows"
                   min={12}
                   max={40}
                   value={editorRows}
@@ -391,24 +392,21 @@ export default function CodeEditor() {
             </div>
 
             {/* Editor */}
-            <div
-              className="flex border border-[#CBD5E1] rounded-lg overflow-hidden"
-              style={{ height: `${editorRows * 1.5}em` }}
-            >
+            {/* Standard practice for totally dynamically calculated styles without an inline string/object: */}
+            <style>{`
+              .dynamic-editor-height {
+                height: ${editorRows * 1.5}em;
+              }
+            `}</style>
+
+            <div className="flex border border-[#CBD5E1] rounded-lg overflow-hidden dynamic-editor-height">
               <div
                 ref={gutterRef}
-                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden mr-2"
-                style={{
-                  minWidth: 36,
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                  fontSize: "13px",
-                  lineHeight: "1.5em"
-                }}
+                className="bg-[#F1F5F9] text-[#64748B] text-xs select-none text-right overflow-hidden mr-2 editor-gutter"
                 aria-hidden="true"
               >
                 {code.split("\n").map((_, i) => (
-                  <div key={i} style={{ height: "1.5em" }}>
+                  <div key={i} className="editor-gutter-line">
                     {i + 1}
                   </div>
                 ))}
@@ -416,22 +414,15 @@ export default function CodeEditor() {
 
               <textarea
                 ref={taRef}
+                id="code-editor-textarea"
+                title="Code Editor Space"
+                placeholder="Write your code here..."
                 rows={editorRows}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onScroll={onScrollTextarea}
                 onKeyDown={handleKeyDown}
-                className="flex-1 ml-2 font-mono text-xs bg-[#F8FAFC] outline-none"
-                style={{
-                  resize: "vertical",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                  fontSize: "13px",
-                  lineHeight: "1.5em",
-                  padding: 0,
-                  margin: 0,
-                  border: "none"
-                }}
+                className="flex-1 ml-2 font-mono text-xs bg-[#F8FAFC] outline-none editor-textarea"
                 spellCheck={false}
                 disabled={initialHydrating}
               />
@@ -499,7 +490,7 @@ function OutputDrawer({
           type="button"
           onClick={() => setOpen(v => !v)}
           className="flex items-center gap-2 focus:outline-none"
-          aria-expanded={open}
+          aria-expanded={open ? "true" : "false"}
           aria-controls={drawerId}
           title={open ? "Collapse" : "Expand"}
         >
@@ -517,11 +508,11 @@ function OutputDrawer({
             aria-label="Output tabs"
             className="hidden sm:flex items-center bg-[#F1F5F9] rounded-md overflow-hidden border border-[#E2E8F0]"
           >
-            {tabs.map(t => (
+            {tabs.map((t) => (
               <button
                 key={t.key}
                 role="tab"
-                aria-selected={activeTab === t.key}
+                aria-selected={String(activeTab === t.key) as "true" | "false"}
                 onClick={() => setActiveTab(t.key)}
                 className={`px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]
                   ${activeTab === t.key ? "bg-white text-[#0F172A]" : "text-[#475569]"}`}
@@ -535,7 +526,7 @@ function OutputDrawer({
           <button
             onClick={copyActive}
             className="text-xs text-[#2563EB] hover:underline"
-            title="Copy"
+            title="Copy Output Content"
           >
             {copied ? "Copied" : "Copy"}
           </button>

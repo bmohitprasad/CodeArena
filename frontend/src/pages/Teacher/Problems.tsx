@@ -1,5 +1,3 @@
-// src/pages/teacher/Problems.tsx
-
 import { useNavigate, useParams } from "react-router-dom";
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
@@ -112,7 +110,7 @@ export const TeacherProblems = () => {
     clearForm,
   ]);
 
-  // Delete assignment (now implemented)
+  // Delete assignment
   const deleteAssignment = useCallback(async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -141,34 +139,38 @@ export const TeacherProblems = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
-      <div className="fixed top-0 left-0 right-0 z-50">
+      <div className="fixed top-0 left-0 right-0 z-50 w-full">
         <Appbar />
       </div>
       <div className="flex flex-1">
         <Sidebar user="teacher" />
-        <main className="flex-1 p-6 flex gap-6">
+        <main className="flex-1 p-6 flex gap-6 mt-16">
           {/* Left Column */}
           <div className="w-1/3 flex flex-col gap-6">
             {/* Create Problem */}
             <div className="bg-white p-6 rounded-xl shadow-md">
-              <div
-                className="flex items-center justify-between cursor-pointer"
+              <button
+                type="button"
+                className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-md"
                 onClick={() => setFormOpen((o) => !o)}
-                aria-expanded={formOpen}
+                aria-expanded={formOpen ? "true" : "false"}
+                aria-controls="create-problem-form"
               >
                 <h2 className="text-lg font-semibold text-[#1E293B]">
                   Create Problem
                 </h2>
                 {formOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </div>
+              </button>
 
               {formOpen && (
-                <div className="space-y-4 mt-4">
+                <div id="create-problem-form" className="space-y-4 mt-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="problem-title" className="block text-sm font-medium text-gray-700 mb-1">
                       Title
                     </label>
                     <Input
+                      id="problem-title"
+                      title="Problem Title"
                       placeholder="e.g. Sum of Two Numbers"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
@@ -177,10 +179,12 @@ export const TeacherProblems = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="problem-description" className="block text-sm font-medium text-gray-700 mb-1">
                       Description
                     </label>
                     <Textarea
+                      id="problem-description"
+                      title="Problem Description"
                       placeholder="e.g. Write a program to add two integers."
                       value={content}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
@@ -191,10 +195,12 @@ export const TeacherProblems = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="problem-expected" className="block text-sm font-medium text-gray-700 mb-1">
                       Expected Output <span className="text-gray-400">(optional)</span>
                     </label>
                     <Textarea
+                      id="problem-expected"
+                      title="Problem Expected Output"
                       placeholder="e.g. 5"
                       value={expectedOutput}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
@@ -214,12 +220,12 @@ export const TeacherProblems = () => {
                       {creating ? "Creating..." : "Create Problem"}
                     </Button>
                     {errorMsg && (
-                      <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded">
+                      <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded" role="alert">
                         {errorMsg}
                       </div>
                     )}
                     {successMsg && (
-                      <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded">
+                      <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded" role="status">
                         {successMsg}
                       </div>
                     )}

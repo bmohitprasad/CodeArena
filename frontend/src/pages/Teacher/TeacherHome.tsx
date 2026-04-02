@@ -55,9 +55,9 @@ const TeacherAuth: React.FC = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <Appbar />
-      </div>
+      <div className="fixed top-0 left-0 right-0 z-50 w-full">
+                <Appbar />
+            </div>
 
       <main className="flex flex-1 items-center justify-center px-4 py-8">
         <div className="grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
