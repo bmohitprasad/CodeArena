@@ -9,6 +9,7 @@ import { StudentAssignments } from "./pages/Student/Assignments"
 import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
 import { SubmissionPage } from "./pages/Student/SubmissionPage"
+import Guest from "./pages/Guest/Guest"
 // import ProblemPage from "./pages/Student/CodeEditor"
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
         <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
         <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
         <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
+
+        <Route path="/guest" element={<Guest/>}/>
       </Routes>
     </BrowserRouter>
   )

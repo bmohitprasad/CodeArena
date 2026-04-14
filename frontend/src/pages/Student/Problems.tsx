@@ -146,7 +146,7 @@ export const StudentProblems = () => {
               : problems.map((p, index) => (
                   <StudentProblemCard
                     key={p.id}
-                    serial={index + 1}      // 👈 FIX
+                    serial={index + 1}      
                     id={p.id}
                     title={p.title}
                     content={p.content}
