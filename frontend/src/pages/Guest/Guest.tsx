@@ -1,7 +1,6 @@
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
 import { Problems } from "../../hooks";
-import { Button } from "../../components/ui/Button";
 import { useEffect, useMemo, useState } from "react";
 import { BACKEND_URL } from "../../config";
 import { StudentProblemCard } from "../../components/StudentProblemCard";
@@ -11,11 +10,10 @@ type ProblemStatus = { problemId: number; isSubmitted: boolean };
 
 
 export default function Guest() {
-  const assignment_id = parseInt("0");
+  const assignment_id = 888;
   const { loading, problems } = Problems({ assignment_id, refresh: true });
 
-  const studentId = useMemo(() => Number(localStorage.getItem("studentId") || 0), []);
-  const [submitted, setSubmitted] = useState(false);
+  const studentId = 888;
   const [statusMap, setStatusMap] = useState<Record<number, boolean>>({});
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -69,32 +67,6 @@ export default function Guest() {
     alert("Please submit all problems before submitting the assignment.");
     return;
   }
-
-  try {
-    const token = localStorage.getItem("jwt"); 
-    const res = await fetch(
-      `${BACKEND_URL}/api/v1/student/assignment/${assignment_id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`
-        },
-        body: JSON.stringify({ studentId })
-      }
-    );
-
-    const data = await safeJson(res);
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Submit failed");
-    }
-
-    setSubmitted(true);
-    alert("Assignment submitted successfully!");
-  } catch (err: any) {
-    alert(err.message || "Failed to submit assignment");
-  }
 }
     return (
         <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
@@ -104,19 +76,6 @@ export default function Guest() {
                 <div className="flex-1 p-6">
                   <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-[#2E3A59]">Assignment Problems</h1>
-                    {!submitted ? (
-                      <Button
-                        onClick={handleSubmitAssignment}
-                        className="px-6 py-2 rounded-xl text-lg font-semibold bg-green-600 hover:bg-green-700"
-                        disabled={!studentId || !assignment_id}
-                      >
-                        Submit Assignment
-                      </Button>
-                    ) : (
-                      <span className="px-6 py-2 rounded-xl text-lg font-semibold bg-gray-300 text-gray-700">
-                        Assignment Submitted ✅
-                      </span>
-                    )}
                   </div>
         
                   {statusLoading && <div className="mb-4 text-sm text-[#64748B]">Loading status…</div>}
