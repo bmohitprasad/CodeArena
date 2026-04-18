@@ -487,7 +487,7 @@ function OutputDrawer({
           type="button"
           onClick={() => setOpen(v => !v)}
           className="flex items-center gap-2 focus:outline-none"
-          aria-expanded={open ? 'true' : 'false'}
+          {...(open ? { 'aria-expanded': 'true' as const } : { 'aria-expanded': 'false' as const })}
           aria-controls={drawerId}
           title={open ? "Collapse" : "Expand"}
         >
@@ -505,18 +505,20 @@ function OutputDrawer({
             aria-label="Output tabs"
             className="hidden sm:flex items-center bg-[#F1F5F9] rounded-md overflow-hidden border border-[#E2E8F0]"
           >
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                role="tab"
-                aria-selected={activeTab === t.key ? 'true' : 'false'}
-                onClick={() => setActiveTab(t.key)}
-                className={`px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]
-                  ${activeTab === t.key ? "bg-white text-[#0F172A]" : "text-[#475569]"}`}
-              >
-                {t.label}
-              </button>
-            ))}
+            {tabs.map((t) => {
+              return (
+                <button
+                  key={t.key}
+                  role="tab"
+                  {...(activeTab === t.key ? { 'aria-selected': 'true' as const } : { 'aria-selected': 'false' as const })}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]
+                    ${activeTab === t.key ? "bg-white text-[#0F172A]" : "text-[#475569]"}`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Copy */}
