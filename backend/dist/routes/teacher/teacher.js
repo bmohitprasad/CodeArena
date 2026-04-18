@@ -1,10 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authenticate_1 = require("../../middleware/authenticate");
 const requireRole_1 = require("../../middleware/requireRole");
 const prisma_1 = require("../../prisma/prisma");
 const zod_1 = require("zod");
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const teacherRouter = (0, express_1.Router)();
 const createProblemSchema = zod_1.z.object({
     title: zod_1.z.string().min(1),
@@ -213,6 +217,59 @@ teacherRouter.get('/submissions/:id', authenticate_1.authenticate, (0, requireRo
     catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Could not fetch submissions' });
+    }
+});
+// Update teacher profile
+const updateProfileSchema = zod_1.z.object({
+    id: zod_1.z.number().int(),
+    name: zod_1.z.string().optional(),
+    dept: zod_1.z.string().optional(),
+    password: zod_1.z.string().optional(),
+    email: zod_1.z.string().email().optional()
+});
+teacherRouter.post('/profile/update', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), async (req, res) => {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+    }
+    const { id, name, dept, password } = parsed.data;
+    try {
+        const teacher = await prisma_1.prisma.teacher.findUnique({
+            where: { id }
+        });
+        if (!teacher) {
+            return res.status(404).json({ error: 'Teacher not found' });
+        }
+        const updateData = {};
+        if (name)
+            updateData.name = name;
+        if (dept)
+            updateData.dept = dept;
+        if (password && password.trim() !== '') {
+            updateData.password = await bcrypt_1.default.hash(password, 10);
+        }
+        const updatedTeacher = await prisma_1.prisma.teacher.update({
+            where: { id },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                dept: true,
+                email: true,
+                role: true
+            }
+        });
+        return res.status(200).json({
+            message: 'Profile updated successfully',
+            teacher: updatedTeacher
+        });
+    }
+    catch (err) {
+        console.error('Profile update error:', err);
+        return res.status(500).json({
+            error: 'Failed to update profile',
+            details: err.message
+        });
     }
 });
 exports.default = teacherRouter;

@@ -7,4 +7,10 @@ exports.prisma = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const client_1 = require("@prisma/client");
-exports.prisma = new client_1.PrismaClient();
+exports.prisma = new client_1.PrismaClient({
+    datasources: {
+        db: {
+            url: process.env.DATABASE_URL
+        }
+    }
+});

@@ -8,6 +8,7 @@ const codeRunner_1 = require("../../lib/codeRunner");
 const authenticate_1 = require("../../middleware/authenticate");
 const prisma_1 = require("../../prisma/prisma");
 const zod_1 = __importDefault(require("zod"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const studentRouter = (0, express_1.Router)();
 const submitSchema = zod_1.default.object({
     studentId: zod_1.default.number().int(),
@@ -90,7 +91,7 @@ studentRouter.get('/assignment/problem/:id', authenticate_1.authenticate, async 
         res.status(500).json({ error: 'Could not fetch problems' });
     }
 });
-// Run a problem (no persistence beyond ProblemSubmission mark)
+// Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate_1.authenticate, async (req, res) => {
     const problemId = parseInt(req.params.id);
     const assignmentId = parseInt(req.params.assid);
@@ -175,7 +176,6 @@ studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res)
     if (!student || !assignment || !problem || problem.assignmentId !== assignmentId) {
         return res.status(400).json({ error: 'Invalid student/assignment/problem linkage' });
     }
-    // Persist only when matched
     const created = await prisma_1.prisma.problemCodeSubmission.create({
         data: {
             student_id: Number(studentId),
@@ -188,7 +188,6 @@ studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res)
     });
     return res.status(201).json({ id: created.id, status: 'saved' });
 });
-// Latest submission (derive from history)
 studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
@@ -261,5 +260,57 @@ studentRouter.get('/assignment/:assignmentId/problem-status', authenticate_1.aut
     const set = new Set(submissions.map(s => s.problemId));
     const status = problemIds.map(pid => ({ problemId: pid, isSubmitted: set.has(pid) }));
     return res.json({ status });
+});
+// Update student profile
+const updateProfileSchema = zod_1.default.object({
+    roll_num: zod_1.default.number().int(),
+    name: zod_1.default.string().optional(),
+    branch: zod_1.default.string().optional(),
+    password: zod_1.default.string().optional(),
+    email: zod_1.default.string().email().optional()
+});
+studentRouter.post('/profile/update', authenticate_1.authenticate, async (req, res) => {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+    }
+    const { roll_num, name, branch, password } = parsed.data;
+    try {
+        const student = await prisma_1.prisma.student.findUnique({
+            where: { roll_num }
+        });
+        if (!student) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        const updateData = {};
+        if (name)
+            updateData.name = name;
+        if (branch)
+            updateData.branch = branch;
+        if (password && password.trim() !== '') {
+            updateData.password = await bcrypt_1.default.hash(password, 10);
+        }
+        const updatedStudent = await prisma_1.prisma.student.update({
+            where: { roll_num },
+            data: updateData,
+            select: {
+                roll_num: true,
+                name: true,
+                branch: true,
+                role: true
+            }
+        });
+        return res.status(200).json({
+            message: 'Profile updated successfully',
+            student: updatedStudent
+        });
+    }
+    catch (err) {
+        console.error('Profile update error:', err);
+        return res.status(500).json({
+            error: 'Failed to update profile',
+            details: err.message
+        });
+    }
 });
 exports.default = studentRouter;

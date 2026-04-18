@@ -1,9 +1,3 @@
-import { defineConfig } from '@prisma/internals'
-
-export default defineConfig({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-})
+// Prisma configuration - Prisma automatically reads from prisma/schema.prisma
+// This file is not needed for standard Prisma setup but kept for reference
+// DATABASE_URL should be set in environment variables

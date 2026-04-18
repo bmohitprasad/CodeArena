@@ -230,6 +230,7 @@ export default function TeacherProfilePage() {
                       <input
                         type={showPassword ? "text" : "password"}
                         name="password"
+                        title="New Password"
                         placeholder="Enter new password"
                         value={formData.password || ""}
                         onChange={handleInputChange}
