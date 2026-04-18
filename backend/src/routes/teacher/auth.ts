@@ -6,28 +6,29 @@ import { prisma } from '../../prisma/prisma';
 
 const teacherAuthRouter = Router();
 
+// 1. Enhanced Zod Schemas with specific messages
 const signupInput = z.object({
-  password: z.string().min(6),
-  name: z.string(),
-  dept: z.string(),
-  email: z.string().email()
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  name: z.string().min(2, { message: "Name is too short" }),
+  dept: z.string().min(1, { message: "Department is required" }),
+  email: z.string().email({ message: "Invalid email format" })
 });
 
 const signinInput = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email({ message: "Invalid email format" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
-export type SignupInput = z.infer<typeof signupInput>;
-export type SigninInput = z.infer<typeof signinInput>;
-
-const JWT_SECRET = "TOPSECRETCODE"
+const JWT_SECRET = "TOPSECRETCODE";
 
 teacherAuthRouter.post('/signup', async (req: Request, res: Response): Promise<any> => {
   const parseResult = signupInput.safeParse(req.body);
   
+  // 2. Return specific Zod validation errors
   if (!parseResult.success) {
-    return res.status(411).json({ message: "Inputs not correct" });
+    return res.status(400).json({ 
+      message: parseResult.error.issues[0].message 
+    });
   }
   
   const body = parseResult.data;
@@ -44,24 +45,27 @@ teacherAuthRouter.post('/signup', async (req: Request, res: Response): Promise<a
     });
 
     const token = jwt.sign({ 
-      id: user.id,
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      dept: user.email
-    },
-    JWT_SECRET);
-
-    const teacherId =  user.id
+      id: user.id, 
+      role: user.role, 
+      name: user.name, 
+      email: user.email, 
+      dept: user.dept 
+    }, JWT_SECRET);
 
     return res.json({ 
-      jwt: token,
-      teacherId
+      jwt: token, 
+      teacherId: user.id 
     });
 
-  } catch (e) {
+  } catch (e: any) {
+    // 3. Handle Unique Email constraint (P2002)
+    if (e.code === 'P2002') {
+      return res.status(409).json({ 
+        message: "A teacher with this email already exists." 
+      });
+    }
     console.error(e);
-    return res.status(411).send('Invalid');
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -69,50 +73,48 @@ teacherAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   const parseResult = signinInput.safeParse(req.body);
 
   if (!parseResult.success) {
-    return res.status(411).json({ message: "Inputs not correct" });
+    return res.status(400).json({ 
+      message: parseResult.error.issues[0].message 
+    });
   }
 
   const body = parseResult.data;
 
   try {
-    const user = await prisma.teacher.findFirst({
-      where: {
-        email: body.email
-      },
+    const user = await prisma.teacher.findUnique({
+      where: { email: body.email },
     });
 
     if (!user) {
-      res.status(403);
-      return res.json({
-        message: "Incorrect credentials"
-      })
+      return res.status(403).json({ 
+        message: "No teacher account found with this email" 
+      });
     }
 
-    const passwordMatch = await bcrypt.compare(body.password, user.password)
+    const passwordMatch = await bcrypt.compare(body.password, user.password);
 
     if (!passwordMatch) {
-      return res.status(403).json({ message: 'Incorrect credentials' });
+      return res.status(403).json({ 
+        message: "Incorrect password" 
+      });
     }
 
     const token = jwt.sign({ 
-      id: user.id,
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      dept: user.dept
-    },
-    JWT_SECRET);
-
-    const teacherId = user.id
+      id: user.id, 
+      role: user.role, 
+      name: user.name, 
+      email: user.email, 
+      dept: user.dept 
+    }, JWT_SECRET);
 
     return res.json({ 
-      jwt: token,
-      teacherId
+      jwt: token, 
+      teacherId: user.id 
     });
 
   } catch (e) {
     console.error(e);
-    return res.status(411).send('Invalid');
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
