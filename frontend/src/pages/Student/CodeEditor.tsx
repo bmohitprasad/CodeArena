@@ -487,7 +487,7 @@ function OutputDrawer({
           type="button"
           onClick={() => setOpen(v => !v)}
           className="flex items-center gap-2 focus:outline-none"
-          aria-expanded={open ? "true" : "false"}
+          aria-expanded={open ? 'true' : 'false'}
           aria-controls={drawerId}
           title={open ? "Collapse" : "Expand"}
         >
@@ -509,7 +509,7 @@ function OutputDrawer({
               <button
                 key={t.key}
                 role="tab"
-                aria-selected={String(activeTab === t.key) as "true" | "false"}
+                aria-selected={activeTab === t.key ? 'true' : 'false'}
                 onClick={() => setActiveTab(t.key)}
                 className={`px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]
                   ${activeTab === t.key ? "bg-white text-[#0F172A]" : "text-[#475569]"}`}
