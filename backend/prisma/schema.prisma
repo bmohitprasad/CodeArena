@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -49,6 +48,7 @@ model Class {
   teacher     Teacher      @relation(fields: [teacher_id], references: [id])
   enrollments Enrollment[]
   assignments Assignment[]
+  chatMessages ChatMessage[]
 }
 
 model Enrollment {
@@ -119,7 +119,7 @@ model ProblemSubmission {
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   problem    Problem    @relation(fields: [problemId], references: [id])
 
-  submission AssignmentSubmission? @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
+  submission AssignmentSubmission @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
 
   @@unique([student_id, assignmentId, problemId])
   @@index([assignmentId, problemId])
@@ -151,13 +151,14 @@ model ProblemCodeSubmission {
 
 model ChatMessage {
   id          Int      @id @default(autoincrement())
-  classroomId String   
+  classroomId Int   
   userId      Int
   userName    String
   content     String
   createdAt   DateTime @default(now())
 
+  class       Class    @relation(fields: [classroomId], references: [class_id])
+
   @@index([classroomId])
   @@index([userId])
 }
-

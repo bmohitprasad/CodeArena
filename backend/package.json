@@ -39,7 +39,7 @@
     "@types/cors": "^2.8.17",
     "@types/dotenv": "^6.1.1",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.30",
+    "@types/node": "^20.19.39",
     "@types/pdf-parse": "^1.1.5",
     "i": "^0.3.7",
     "nodemon": "^3.1.9",
