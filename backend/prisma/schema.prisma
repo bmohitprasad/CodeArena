@@ -74,7 +74,6 @@ model Assignment {
   submissions AssignmentSubmission[]
   problemSubs ProblemSubmission[]
 
-  // Backref to code submissions
   codeSubs ProblemCodeSubmission[]
 
   @@index([classId])
@@ -85,7 +84,7 @@ model Problem {
   title          String
   content        String
   assignmentId   Int
-  expectedOutput String? // <-- make optional
+  expectedOutput String?
   assignment     Assignment              @relation(fields: [assignmentId], references: [id])
   problemSubs    ProblemSubmission[]
   codeSubs       ProblemCodeSubmission[]
@@ -101,7 +100,6 @@ model AssignmentSubmission {
   student    Student    @relation(fields: [student_id], references: [roll_num])
   assignment Assignment @relation(fields: [assignmentId], references: [id])
 
-  // Opposite side lives on ProblemSubmission.submission (see below)
   problems ProblemSubmission[]
 
   @@unique([student_id, assignmentId])
@@ -121,8 +119,6 @@ model ProblemSubmission {
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   problem    Problem    @relation(fields: [problemId], references: [id])
 
-  // This is the missing opposite field. It ties ProblemSubmission
-  // to its parent AssignmentSubmission via the same (student_id, assignmentId).
   submission AssignmentSubmission? @relation(fields: [student_id, assignmentId], references: [student_id, assignmentId], onDelete: Cascade)
 
   @@unique([student_id, assignmentId, problemId])
@@ -130,7 +126,6 @@ model ProblemSubmission {
   @@index([student_id, assignmentId])
 }
 
-// Latest-only code submission per student–assignment–problem
 model ProblemCodeSubmission {
   id           Int      @id @default(autoincrement())
   student_id   Int
@@ -150,16 +145,13 @@ model ProblemCodeSubmission {
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   problem    Problem    @relation(fields: [problemId], references: [id])
 
-  // Remove the unique so multiple rows can be created
-  // @@unique([student_id, assignmentId, problemId])  <-- delete this
-
   @@index([assignmentId, problemId])
   @@index([student_id, assignmentId])
 }
 
 model ChatMessage {
   id          Int      @id @default(autoincrement())
-  classroomId String   // or assignmentId as string/UUID
+  classroomId String   
   userId      Int
   userName    String
   content     String
