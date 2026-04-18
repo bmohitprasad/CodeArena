@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import TeacherAuth from "./pages/Teacher/TeacherHome"
 import { Classes } from "./pages/Teacher/Classes"
 import { TeacherAssignments } from "./pages/Teacher/Assignments"
@@ -10,17 +10,23 @@ import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
 import { SubmissionPage } from "./pages/Student/SubmissionPage"
 import Guest from "./pages/Guest/Guest"
-// import ProblemPage from "./pages/Student/CodeEditor"
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Default route */}
+        <Route path="/" element={<Navigate to="/guest" replace />} />
+
+        {/* Teacher routes */}
+        <Route path="/teacher/auth" element={<TeacherAuth/>}/>
         <Route path="/teacher/home" element={<TeacherAuth/>}/>
         <Route path="/teacher/classes" element={<Classes/>}/>
         <Route path="/teacher/class/:id" element={<TeacherAssignments/>}/>
         <Route path="/teacher/class/assignment/:id" element={<TeacherProblems/>}/>
 
+        {/* Student routes */}
+        <Route path="/student/auth" element={<StudentAuth/>}/>
         <Route path="/student/home" element={<StudentAuth/>}/>
         <Route path="/student/classes" element={<StudentClasses/>}/>
         <Route path="/student/class/:id" element={<StudentAssignments/>}/>
@@ -28,6 +34,7 @@ function App() {
         <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
         <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
 
+        {/* Guest route */}
         <Route path="/guest" element={<Guest/>}/>
       </Routes>
     </BrowserRouter>
