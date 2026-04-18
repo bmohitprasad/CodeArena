@@ -3,6 +3,7 @@ import { runCode } from '../../lib/codeRunner';
 import { authenticate } from '../../middleware/authenticate';
 import { prisma } from '../../prisma/prisma';
 import z from 'zod';
+import bcrypt from 'bcrypt';
 
 const studentRouter = Router();
 
@@ -290,6 +291,63 @@ studentRouter.get('/assignment/:assignmentId/problem-status', authenticate, asyn
   const status = problemIds.map(pid => ({ problemId: pid, isSubmitted: set.has(pid) }));
 
   return res.json({ status });
+});
+
+// Update student profile
+const updateProfileSchema = z.object({
+  roll_num: z.number().int(),
+  name: z.string().optional(),
+  branch: z.string().optional(),
+  password: z.string().optional(),
+  email: z.string().email().optional()
+});
+
+studentRouter.post('/profile/update', authenticate, async (req: Request, res: Response): Promise<any> => {
+  const parsed = updateProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+  }
+
+  const { roll_num, name, branch, password } = parsed.data;
+
+  try {
+    const student = await prisma.student.findUnique({
+      where: { roll_num }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (branch) updateData.branch = branch;
+    if (password && password.trim() !== '') {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updatedStudent = await prisma.student.update({
+      where: { roll_num },
+      data: updateData,
+      select: {
+        roll_num: true,
+        name: true,
+        branch: true,
+        role: true
+      }
+    });
+
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      student: updatedStudent
+    });
+  } catch (err: any) {
+    console.error('Profile update error:', err);
+    return res.status(500).json({
+      error: 'Failed to update profile',
+      details: err.message
+    });
+  }
 });
 
 export default studentRouter;

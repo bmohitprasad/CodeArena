@@ -1,14 +1,12 @@
 import { useState } from "react";
 import {
-  // Calendar,
   Home,
-  // BookOpenCheck,
-  // ClipboardList,
-  // Archive,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  User,
+  BookOpen,
 } from "lucide-react";
 
 import { Link, useNavigate } from "react-router-dom";
@@ -27,37 +25,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleLogout = () => {
     localStorage.removeItem("jwt");
-    navigate(`/${user}/home`);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("studentId");
+    localStorage.removeItem("teacherId");
+    navigate("/guest");
   };
 
   return (
     <aside
       className={`${
         isOpen ? "w-64" : "w-16"
-      } bg-white border-r border-[#E2E8F0] px-4 py-6 space-y-8 shadow-sm transition-all duration-300 relative flex flex-col justify-between`}
+      } bg-white dark:bg-[#1a1a2e] border-r border-[#E2E8F0] dark:border-[#333] px-4 py-6 space-y-8 shadow-sm transition-all duration-300 relative flex flex-col justify-between`}
     >
       {/* Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-6 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 transition"
+        className="absolute -right-3 top-6 bg-white dark:bg-[#2a2a3e] border border-gray-300 dark:border-[#444] rounded-full p-1 shadow hover:bg-gray-100 dark:hover:bg-[#3a3a4e] transition"
+        title="Toggle sidebar"
       >
         {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
       </button>
 
       {/* Sidebar Links */}
       <div className="space-y-4">
-        <SidebarItem icon={<Home />} label="Home" to={`/${user}/classes`} isOpen={isOpen} />
-        {/* <SidebarItem icon={<Calendar />} label="Calendar" to="/admin/classes" isOpen={isOpen} />
-        <SidebarItem icon={<BookOpenCheck />} label="Enrolled" to="/admin/classes" isOpen={isOpen} />
-        <SidebarItem icon={<ClipboardList />} label="To do" to="/admin/classes" isOpen={isOpen} />
-        <SidebarItem icon={<Archive />} label="Archived classes" to="/admin/classes" isOpen={isOpen} /> */}
-        <SidebarItem icon={<Settings />} label="Settings" to={`/${user}/settings`}isOpen={isOpen} />
+        <SidebarItem icon={<Home />} label="Classes" to={`/${user}/classes`} isOpen={isOpen} />
+        <SidebarItem icon={<BookOpen />} label="Assignments" to={`/${user}/assignments`} isOpen={isOpen} />
+        <SidebarItem icon={<User />} label="Profile" to={`/${user}/profile`} isOpen={isOpen} />
+        <SidebarItem icon={<Settings />} label="Settings" to={`/${user}/settings`} isOpen={isOpen} />
       </div>
 
       {/* Logout Button */}
       <button
         onClick={handleLogout}
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-red-600 hover:bg-red-100 hover:text-red-700 transition"
+        className="flex items-center gap-3 px-3 py-2 rounded-md text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 transition w-full"
+        title="Logout"
       >
         <LogOut />
         {isOpen && <span className="font-medium">Logout</span>}
@@ -79,7 +81,8 @@ const SidebarItem = ({
 }) => (
   <Link
     to={to}
-    className="flex items-center gap-3 px-3 py-2 rounded-md text-[#1E293B] hover:bg-[#E2E8F0] hover:text-[#2E3A59] transition"
+    className="flex items-center gap-3 px-3 py-2 rounded-md text-[#1E293B] dark:text-[#E2E8F0] hover:bg-[#E2E8F0] dark:hover:bg-[#2a2a3e] hover:text-[#2E3A59] dark:hover:text-white transition"
+    title={label}
   >
     {icon}
     {isOpen && <span className="font-medium">{label}</span>}

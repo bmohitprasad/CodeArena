@@ -3,12 +3,14 @@ import TeacherAuth from "./pages/Teacher/TeacherHome"
 import { Classes } from "./pages/Teacher/Classes"
 import { TeacherAssignments } from "./pages/Teacher/Assignments"
 import { TeacherProblems } from "./pages/Teacher/Problems"
+import TeacherProfile from "./pages/Teacher/Profile"
 import StudentAuth from "./pages/Student/StudentHome"
 import { StudentClasses } from "./pages/Student/Classes"
 import { StudentAssignments } from "./pages/Student/Assignments"
 import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
 import { SubmissionPage } from "./pages/Student/SubmissionPage"
+import StudentProfile from "./pages/Student/Profile"
 import Guest from "./pages/Guest/Guest"
 
 function App() {
@@ -24,6 +26,7 @@ function App() {
         <Route path="/teacher/classes" element={<Classes/>}/>
         <Route path="/teacher/class/:id" element={<TeacherAssignments/>}/>
         <Route path="/teacher/class/assignment/:id" element={<TeacherProblems/>}/>
+        <Route path="/teacher/profile" element={<TeacherProfile/>}/>
 
         {/* Student routes */}
         <Route path="/student/auth" element={<StudentAuth/>}/>
@@ -33,6 +36,7 @@ function App() {
         <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
         <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
         <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
+        <Route path="/student/profile" element={<StudentProfile/>}/>
 
         {/* Guest route */}
         <Route path="/guest" element={<Guest/>}/>

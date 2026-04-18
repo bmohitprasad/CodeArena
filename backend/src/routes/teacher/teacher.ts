@@ -3,6 +3,7 @@ import { authenticate } from '../../middleware/authenticate';
 import { requireRole } from '../../middleware/requireRole';
 import { prisma } from '../../prisma/prisma';
 import { z } from 'zod';
+import bcrypt from 'bcrypt';
 
 const teacherRouter = Router()
 
@@ -240,5 +241,63 @@ teacherRouter.post('/assignment/:id/add-problem', authenticate, requireRole('TEA
       res.status(500).json({ error: 'Could not fetch submissions' });
     }
   });
+
+// Update teacher profile
+const updateProfileSchema = z.object({
+  id: z.number().int(),
+  name: z.string().optional(),
+  dept: z.string().optional(),
+  password: z.string().optional(),
+  email: z.string().email().optional()
+});
+
+teacherRouter.post('/profile/update', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
+  const parsed = updateProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+  }
+
+  const { id, name, dept, password } = parsed.data;
+
+  try {
+    const teacher = await prisma.teacher.findUnique({
+      where: { id }
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (dept) updateData.dept = dept;
+    if (password && password.trim() !== '') {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updatedTeacher = await prisma.teacher.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        dept: true,
+        email: true,
+        role: true
+      }
+    });
+
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      teacher: updatedTeacher
+    });
+  } catch (err: any) {
+    console.error('Profile update error:', err);
+    return res.status(500).json({
+      error: 'Failed to update profile',
+      details: err.message
+    });
+  }
+});
 
 export default teacherRouter;
