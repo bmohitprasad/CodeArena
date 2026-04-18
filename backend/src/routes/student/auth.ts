@@ -8,10 +8,13 @@ import bcrypt from 'bcrypt';
 const studentAuthRouter = Router();
 
 const signupInput = z.object({
-  roll_num: z.coerce.number().int(),
-  password: z.string(),
-  name: z.string(),
-  branch: z.string()
+  roll_num: z.coerce.number()
+    .int()
+    .min(100000, { message: "Roll number must be at least 6 digits" })
+    .max(999999, { message: "Roll number cannot exceed 6 digits" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+  name: z.string().min(2, { message: "Name is too short" }),
+  branch: z.string().min(1, { message: "Branch is required" })
 });
 
 const signinInput = z.object({
@@ -30,8 +33,12 @@ studentAuthRouter.use(express.json());
 studentAuthRouter.post('/signup', async (req: Request, res: Response): Promise<any> => {
   const parseResult = signupInput.safeParse(req.body);
 
+  // 1. Handle Zod Validation Errors
   if (!parseResult.success) {
-    return res.status(411).json({ message: "Inputs not correct" });
+    return res.status(400).json({ 
+      // This grabs the first specific error message from Zod
+      message: parseResult.error.issues[0].message 
+    });
   }
 
   const body = parseResult.data;
@@ -47,24 +54,20 @@ studentAuthRouter.post('/signup', async (req: Request, res: Response): Promise<a
       },
     });
 
-    const token = jwt.sign({ 
-      id: user.roll_num,
-      role: user.role,
-      name: user.name,
-      branch: user.branch
-    },
-    JWT_SECRET);
+    const token = jwt.sign({ id: user.roll_num, role: user.role }, JWT_SECRET);
 
-    const roll_num = user.roll_num;
+    return res.json({ jwt: token, roll_num: user.roll_num });
 
-    return res.json({ 
-      jwt: token,
-      roll_num: roll_num
-    });
+  } catch (e: any) {
+    // 2. Handle Unique Constraint (Roll Number already exists)
+    if (e.code === 'P2002') {
+      return res.status(409).json({ 
+        message: "A student with this roll number is already registered." 
+      });
+    }
 
-  } catch (e) {
     console.error(e);
-    return res.status(411).send('Invalid');
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -72,50 +75,32 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   const parseResult = signinInput.safeParse(req.body);
   
   if (!parseResult.success) {
-    return res.status(411).json({ message: "Inputs not correct" });
+    return res.status(400).json({ message: parseResult.error.issues[0].message });
   }
 
-  const body = parseResult.data;
-  const roll = Number(body.roll_num)
+  const { roll_num, password } = parseResult.data;
 
   try {
-    const user = await prisma.student.findFirst({
-      where: {
-        roll_num: roll
-      },
+    const user = await prisma.student.findUnique({ // Use findUnique for primary keys
+      where: { roll_num: Number(roll_num) },
     });
 
     if (!user) {
-      res.status(403);
-      return res.json({
-        message: "Incorrect credentials"
-      })
+      return res.status(403).json({ message: "No account found with this roll number" });
     }
 
-    const passwordMatch = await bcrypt.compare(body.password, user.password)
+    const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      return res.status(403).json( {message : 'Incorrect credentials' });
+      return res.status(403).json({ message: "Incorrect password" });
     }
 
-    const token = jwt.sign({ 
-      id: user.roll_num,
-      role: user.role,
-      name: user.name,
-      branch: user.branch
-    },
-    JWT_SECRET);
+    const token = jwt.sign({ id: user.roll_num, role: user.role }, JWT_SECRET);
 
-    const roll_num = user.roll_num;
-
-    return res.json({ 
-      jwt: token,
-      roll_num: roll_num
-    });
+    return res.json({ jwt: token, roll_num: user.roll_num });
 
   } catch (e) {
-    console.error(e);
-    return res.status(411).send('Invalid');
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
