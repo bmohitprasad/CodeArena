@@ -11,37 +11,40 @@ import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
 import { SubmissionPage } from "./pages/Student/SubmissionPage"
 import StudentProfile from "./pages/Student/Profile"
-import Guest from "./pages/Guest/Guest"
+import Home from "./pages/Home/Home"
+import { ThemeProvider } from "./context/ThemeContext"
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Default route */}
-        <Route path="/" element={<Navigate to="/guest" replace />} />
+    <ThemeProvider>
 
-        {/* Teacher routes */}
-        <Route path="/teacher/auth" element={<TeacherAuth/>}/>
-        <Route path="/teacher/home" element={<TeacherAuth/>}/>
-        <Route path="/teacher/classes" element={<Classes/>}/>
-        <Route path="/teacher/class/:id" element={<TeacherAssignments/>}/>
-        <Route path="/teacher/class/assignment/:id" element={<TeacherProblems/>}/>
-        <Route path="/teacher/profile" element={<TeacherProfile/>}/>
+      <BrowserRouter>
+        <Routes>
+          {/* Default route */}
+          <Route path="/" element={<Navigate to="/guest" replace />} />
 
-        {/* Student routes */}
-        <Route path="/student/auth" element={<StudentAuth/>}/>
-        <Route path="/student/home" element={<StudentAuth/>}/>
-        <Route path="/student/classes" element={<StudentClasses/>}/>
-        <Route path="/student/class/:id" element={<StudentAssignments/>}/>
-        <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
-        <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
-        <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
-        <Route path="/student/profile" element={<StudentProfile/>}/>
+          {/* Teacher routes */}
+          <Route path="/teacher/auth" element={<TeacherAuth/>}/>
+          <Route path="/teacher/home" element={<TeacherAuth/>}/>
+          <Route path="/teacher/classes" element={<Classes/>}/>
+          <Route path="/teacher/class/:id" element={<TeacherAssignments/>}/>
+          <Route path="/teacher/class/assignment/:id" element={<TeacherProblems/>}/>
+          <Route path="/teacher/profile" element={<TeacherProfile/>}/>
 
-        {/* Guest route */}
-        <Route path="/guest" element={<Guest/>}/>
-      </Routes>
-    </BrowserRouter>
+          {/* Student routes */}
+          <Route path="/student/auth" element={<StudentAuth/>}/>
+          <Route path="/student/home" element={<StudentAuth/>}/>
+          <Route path="/student/classes" element={<StudentClasses/>}/>
+          <Route path="/student/class/:id" element={<StudentAssignments/>}/>
+          <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
+          <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
+          <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
+          <Route path="/student/profile" element={<StudentProfile/>}/>
+
+          <Route path="/guest" element={<Home/>}/>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 
