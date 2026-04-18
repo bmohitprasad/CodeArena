@@ -33,10 +33,8 @@ studentAuthRouter.use(express.json());
 studentAuthRouter.post('/signup', async (req: Request, res: Response): Promise<any> => {
   const parseResult = signupInput.safeParse(req.body);
 
-  // 1. Handle Zod Validation Errors
   if (!parseResult.success) {
     return res.status(400).json({ 
-      // This grabs the first specific error message from Zod
       message: parseResult.error.issues[0].message 
     });
   }
@@ -59,7 +57,6 @@ studentAuthRouter.post('/signup', async (req: Request, res: Response): Promise<a
     return res.json({ jwt: token, roll_num: user.roll_num });
 
   } catch (e: any) {
-    // 2. Handle Unique Constraint (Roll Number already exists)
     if (e.code === 'P2002') {
       return res.status(409).json({ 
         message: "A student with this roll number is already registered." 
@@ -81,7 +78,7 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   const { roll_num, password } = parseResult.data;
 
   try {
-    const user = await prisma.student.findUnique({ // Use findUnique for primary keys
+    const user = await prisma.student.findUnique({ 
       where: { roll_num: Number(roll_num) },
     });
 
