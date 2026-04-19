@@ -23,6 +23,12 @@ const submitSchema = z.object({
   input: z.string().optional()
 });
 
+const publicRunSchema = z.object({
+  language: z.string().min(1),
+  code: z.string().min(1, "Code cannot be empty"),
+  input: z.string().optional()
+});
+
 // Join a class
 studentRouter.post('/join', authenticate, async (req: Request, res: Response): Promise<any> => {
   const joinCode = req.body.joinCode;
@@ -104,7 +110,13 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
 
 // Public route for guests to run code (Unauthenticated)
 studentRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
-  const { code, language, input } = req.body;
+  const parsed = publicRunSchema.safeParse(req.body);
+  
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+  }
+
+  const { code, language, input } = parsed.data;
 
   try {
     const result = await runCode(language, code, input || '');
