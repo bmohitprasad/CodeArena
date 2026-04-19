@@ -300,4 +300,17 @@ teacherRouter.post('/profile/update', authenticate, requireRole('TEACHER'), asyn
   }
 });
 
+teacherRouter.get('/profile', authenticate, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const teacherId = (req as any).user.id; 
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: teacherId },
+      select: { id: true, name: true, dept: true, email: true }
+    });
+    return res.json({ teacher });
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+ 
 export default teacherRouter;

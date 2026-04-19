@@ -350,4 +350,16 @@ studentRouter.post('/profile/update', authenticate, async (req: Request, res: Re
   }
 });
 
+studentRouter.get('/profile', authenticate, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const roll_num = (req as any).user.roll_num; 
+    const student = await prisma.student.findUnique({
+      where: { roll_num },
+      select: { roll_num: true, name: true, branch: true, email: true }
+    });
+    return res.json({ student });
+  } catch (e) {
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
 export default studentRouter;
