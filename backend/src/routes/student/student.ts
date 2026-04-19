@@ -7,6 +7,13 @@ import bcrypt from 'bcrypt';
 
 const studentRouter = Router();
 
+const updateStudentSchema = z.object({
+  roll_num: z.number().int(),
+  name: z.string().optional(),
+  branch: z.string().optional(),
+  password: z.string().optional(),
+});
+
 const submitSchema = z.object({
   studentId: z.number().int(),
   assignmentId: z.number().int(),
@@ -302,64 +309,43 @@ const updateProfileSchema = z.object({
   email: z.string().email().optional()
 });
 
-studentRouter.post('/profile/update', authenticate, async (req: Request, res: Response): Promise<any> => {
-  const parsed = updateProfileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-  }
-
-  const { roll_num, name, branch, password } = parsed.data;
-
-  try {
-    const student = await prisma.student.findUnique({
-      where: { roll_num }
-    });
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (branch) updateData.branch = branch;
-    if (password && password.trim() !== '') {
-      updateData.password = await bcrypt.hash(password, 10);
-    }
-
-    const updatedStudent = await prisma.student.update({
-      where: { roll_num },
-      data: updateData,
-      select: {
-        roll_num: true,
-        name: true,
-        branch: true,
-        role: true
-      }
-    });
-
-    return res.status(200).json({
-      message: 'Profile updated successfully',
-      student: updatedStudent
-    });
-  } catch (err: any) {
-    console.error('Profile update error:', err);
-    return res.status(500).json({
-      error: 'Failed to update profile',
-      details: err.message
-    });
-  }
-});
-
 studentRouter.get('/profile', authenticate, async (req: Request, res: Response): Promise<any> => {
   try {
-    const roll_num = (req as any).user.roll_num; 
+    const roll_num = Number((req as any).user.roll_num); 
     const student = await prisma.student.findUnique({
       where: { roll_num },
       select: { roll_num: true, name: true, branch: true, email: true }
     });
+    if (!student) return res.status(404).json({ error: "Student not found" });
     return res.json({ student });
   } catch (e) {
-    return res.status(500).json({ error: "Failed to fetch profile" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+// UPDATE Profile
+studentRouter.post('/profile/update', authenticate, async (req: Request, res: Response): Promise<any> => {
+  const parsed = updateStudentSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
+
+  const { roll_num, name, branch, password } = parsed.data;
+
+  try {
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (branch) updateData.branch = branch;
+    if (password?.trim()) updateData.password = await bcrypt.hash(password, 10);
+
+    const updatedStudent = await prisma.student.update({
+      where: { roll_num: Number(roll_num) },
+      data: updateData,
+      select: { roll_num: true, name: true, branch: true }
+    });
+
+    return res.status(200).json({ message: 'Profile updated', student: updatedStudent });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
 export default studentRouter;

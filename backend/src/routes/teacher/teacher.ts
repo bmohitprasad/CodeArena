@@ -7,7 +7,6 @@ import bcrypt from 'bcrypt';
 
 const teacherRouter = Router()
 
-
 const createProblemSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
@@ -251,66 +250,43 @@ const updateProfileSchema = z.object({
   email: z.string().email().optional()
 });
 
-teacherRouter.post('/profile/update', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
-  const parsed = updateProfileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-  }
-
-  const { id, name, dept, password } = parsed.data;
-
-  try {
-    const teacher = await prisma.teacher.findUnique({
-      where: { id }
-    });
-
-    if (!teacher) {
-      return res.status(404).json({ error: 'Teacher not found' });
-    }
-
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (dept) updateData.dept = dept;
-    if (password && password.trim() !== '') {
-      updateData.password = await bcrypt.hash(password, 10);
-    }
-
-    const updatedTeacher = await prisma.teacher.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        dept: true,
-        email: true,
-        role: true
-      }
-    });
-
-    return res.status(200).json({
-      message: 'Profile updated successfully',
-      teacher: updatedTeacher
-    });
-  } catch (err: any) {
-    console.error('Profile update error:', err);
-    return res.status(500).json({
-      error: 'Failed to update profile',
-      details: err.message
-    });
-  }
-});
-
 teacherRouter.get('/profile', authenticate, async (req: Request, res: Response): Promise<any> => {
   try {
-    const teacherId = (req as any).user.id; 
+    const teacherId = Number((req as any).user.id); 
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       select: { id: true, name: true, dept: true, email: true }
     });
+    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
     return res.json({ teacher });
   } catch (e) {
-    return res.status(500).json({ error: "Failed to fetch profile" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
- 
+
+// UPDATE Profile
+teacherRouter.post('/profile/update', authenticate, requireRole('TEACHER'), async (req: Request, res: Response): Promise<any> => {
+  const parsed = updateProfileSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
+
+  const { id, name, dept, password } = parsed.data;
+
+  try {
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (dept) updateData.dept = dept;
+    if (password?.trim()) updateData.password = await bcrypt.hash(password, 10);
+
+    const updatedTeacher = await prisma.teacher.update({
+      where: { id: Number(id) },
+      data: updateData,
+      select: { id: true, name: true, dept: true, email: true }
+    });
+
+    return res.json({ message: 'Profile updated', teacher: updatedTeacher });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
 export default teacherRouter;
