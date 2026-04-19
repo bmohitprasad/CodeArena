@@ -119,9 +119,12 @@ studentRouter.post('/public/run', async (req: Request, res: Response): Promise<a
   const { code, language, input } = parsed.data;
 
   try {
+    console.log(`[Guest Run] Language: ${language}, Code Length: ${code.length}`);
     const result = await runCode(language, code, input || '');
+    console.log(`[Guest Run] Result received:`, result);
     return res.json({ output: result.output });
   } catch (err) {
+    console.error(`[Guest Run] Exception:`, err);
     return res.status(500).json({ error: 'Execution failed' });
   }
 });
