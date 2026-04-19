@@ -102,16 +102,4 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
   }
 });
 
-// Public route for guests to run code without authentication
-studentAuthRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
-  const { code, language, input } = req.body;
-
-  try {
-    const result = await runCode(language, code, input || '');
-    return res.json({ output: result.output });
-  } catch (err) {
-    return res.status(500).json({ error: 'Execution failed' });
-  }
-});
-
 export default studentAuthRouter;
