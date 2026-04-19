@@ -102,6 +102,18 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
   }
 });
 
+// Public route for guests to run code without authentication or DB logging
+studentRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
+  const { code, language, input } = req.body;
+
+  try {
+    const result = await runCode(language, code, input || '');
+    return res.json({ output: result.output });
+  } catch (err) {
+    return res.status(500).json({ error: 'Execution failed' });
+  }
+});
+
 // Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
@@ -170,21 +182,6 @@ studentRouter.post("/assignment/:id", authenticate, async (req: Request, res: Re
     }
   }
 );
-
-
-
-// strict compare
-const equalStrict = (a: string, b: string) => a === b;
-
-// relaxed: trim trailing spaces/newlines on each line
-const normalizeLines = (s: string) =>
-  s.replace(/\r\n/g, '\n')
-   .split('\n')
-   .map(line => line.replace(/\s+$/g, ''))
-   .join('\n')
-   .trim();
-const equalNormalized = (a: string, b: string) => normalizeLines(a) === normalizeLines(b);
-
 
 studentRouter.post('/submit-code', authenticate, async (req, res) => {
   const parsed = submitSchema.safeParse(req.body);
