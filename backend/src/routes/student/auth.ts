@@ -4,6 +4,7 @@ import z from 'zod';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../prisma/prisma';
 import bcrypt from 'bcrypt';
+import { runCode } from '../../lib/codeRunner';
 
 const studentAuthRouter = Router();
 
@@ -98,6 +99,18 @@ studentAuthRouter.post('/signin', async (req: Request, res: Response): Promise<a
 
   } catch (e) {
     return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Public route for guests to run code without authentication
+studentAuthRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
+  const { code, language, input } = req.body;
+
+  try {
+    const result = await runCode(language, code, input || '');
+    return res.json({ output: result.output });
+  } catch (err) {
+    return res.status(500).json({ error: 'Execution failed' });
   }
 });
 
