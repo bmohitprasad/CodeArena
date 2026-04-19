@@ -10,11 +10,11 @@ import axios from "axios";
 import { BACKEND_URL } from "../../config";
 import { Input } from "../../components/ui/Input";
 import { useState } from "react";
-import { ChevronDown, ChevronRight, PlusCircle } from "lucide-react";
-import { Textarea } from "../../components/ui/TextArea";
-// import ClassroomChat from "../../components/ClassroomChat";
+import { ChevronDown, PlusCircle } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 export const TeacherAssignments = () => {
+  const { darkMode } = useTheme();
   const { id } = useParams<{ id: string }>();
   const classId = parseInt(id || "0");
   const { loading, assignments } = Assignments({ class_id: classId });
@@ -24,7 +24,13 @@ export const TeacherAssignments = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  // const token = localStorage.getItem('jwt') || '';
+
+  const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F5F7FA]";
+  const cardBg = darkMode ? "bg-[#0F172A] border-slate-800" : "bg-white border-[#E2E8F0]";
+  const headingColor = darkMode ? "text-white" : "text-[#1E293B]";
+  const subTextColor = darkMode ? "text-slate-400" : "text-slate-600";
+  const labelColor = darkMode ? "text-slate-400" : "text-slate-700";
+
 
   const navigate = useNavigate();
 
@@ -62,127 +68,113 @@ export const TeacherAssignments = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+    <div className={`min-h-screen flex flex-col ${pageBg} transition-colors duration-300`}>
       <Appbar />
       <div className="flex flex-1">
-        <Sidebar user="teacher"  />
+        <Sidebar user="teacher" />
+        
+        {/* Left Control Panel */}
         <div className="w-96 p-6 space-y-6">
-          {/* Assignment Form */}
-          <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <button
-          onClick={() => setShowCreateBox((prev) => !prev)}
-          className="flex items-center justify-between w-full text-left"
-        >
-          <span className="flex items-center gap-2 text-[#1E293B] font-semibold text-lg">
-            <PlusCircle className="text-[#2563eb]" size={20} />
-            Create Assignment
-          </span>
-          {showCreateBox ? (
-            <ChevronDown className="text-gray-500" />
-          ) : (
-            <ChevronRight className="text-gray-500" />
-          )}
-        </button>
+          <div className={`${cardBg} border p-6 rounded-xl shadow-sm`}>
+            <button
+              onClick={() => setShowCreateBox((prev) => !prev)}
+              className="flex items-center justify-between w-full"
+            >
+              <span className={`flex items-center gap-2 font-bold text-lg ${headingColor}`}>
+                <PlusCircle className="text-blue-500" size={20} />
+                Create Assignment
+              </span>
+              <ChevronDown className={darkMode ? "text-slate-500" : "text-gray-400"} />
+            </button>
 
-        {showCreateBox && (
-          <div className="mt-6 space-y-4 transition-all">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <Input
-                placeholder="e.g. C Language"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <Textarea
-                  placeholder="e.g. Basics of C with syntax overview..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+            {showCreateBox && (
+              <div className="mt-6 space-y-4 animate-in slide-in-from-top-2">
+                <div>
+                  <label htmlFor="assignment-title" className={`block text-xs font-bold uppercase mb-1 ${labelColor}`}>Title</label>
+                  <Input 
+                    id="assignment-title"
+                    title="Assignment Title"
+                    placeholder="Enter assignment title"
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)} 
+                    className={darkMode ? "bg-slate-900 border-slate-700 text-white" : ""}
                   />
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-                  <Input
-                  type="datetime-local"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
+                </div>
+                <div>
+                  <label htmlFor="assignment-deadline" className={`block text-xs font-bold uppercase mb-1 ${labelColor}`}>Deadline</label>
+                  <Input 
+                    id="assignment-deadline"
+                    type="datetime-local" 
+                    title="Assignment Deadline"
+                    value={deadline} 
+                    onChange={(e) => setDeadline(e.target.value)} 
+                    className={darkMode ? "bg-slate-900 border-slate-700 text-white invert-[0.8] hue-rotate-180" : ""}
                   />
+                </div>
+                <Button onClick={handleCreateAssignment} className="w-full bg-blue-600 hover:bg-blue-700">
+                  Deploy Assignment
+                </Button>
               </div>
-
-              <div className="pt-2">
-                  <Button onClick={handleCreateAssignment} className="w-full">
-                  Create Assignment
-                  </Button>
-              </div>
-              </div>
-          )}
+            )}
           </div>
-          {/* Enrolled Students */}
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h2 className="text-lg font-semibold text-[#1E293B] mb-4 flex items-center gap-2">
+
+          {/* Enrolled Students Sidebar */}
+          <div className={`${cardBg} border p-4 rounded-xl shadow-sm`}>
+            <h2 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${headingColor}`}>
               🎓 Enrolled Students
             </h2>
-            <div className="flex flex-col gap-2">
-              {loadingStudents
-                ? [...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-10 bg-gray-200 rounded-md animate-pulse"
-                    />
-                  ))
-                : enrolledStudents.map((e) => (
-                    <StudentCard
-                      key={e.student_id}
-                      student_id={e.student_id}
-                      name={e.student.name}
-                    />
-                  ))}
+            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+              {/* Use loadingStudents here */}
+              {loadingStudents ? (
+                [...Array(5)].map((_, i) => (
+                  <div key={i} className={`h-12 w-full rounded-xl animate-pulse ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
+                ))
+              ) : enrolledStudents.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-4 text-center">No students joined yet.</p>
+              ) : (
+                enrolledStudents.map((e) => (
+                  <StudentCard
+                    key={e.student_id}
+                    student_id={e.student_id}
+                    name={e.student.name}
+                  />
+                ))
+              )}
             </div>
           </div>
-
-          {/* Delete Button */}
-          <div>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleDeleteClass(classId)}
-              className="flex my-4"
-            >
-              Delete Class
-            </Button>
-          </div>
+          
+          <Button variant="destructive" onClick={() => handleDeleteClass(classId)} className="w-full opacity-70 hover:opacity-100 transition-opacity">
+             Archive / Delete Class
+          </Button>
         </div>
 
-        {/* Assignments List */}
-        <main className="flex-1 py-6 pr-6 flex flex-col items-center">
-          <div className="w-full max-w-4xl space-y-4">
-            {loading
-              ? [...Array(6)].map((_, i) => <AssignmentCardSkeleton key={i} />)
-              : assignments.map((a) => (
-                  <Assignmentcard
-                    key={a.id}
-                    id={a.id}
-                    user="teacher"
-                    title={a.title}
-                    description={a.description}
-                    createdAt={a.createdAt}
-                    deadline={a.deadline}
-                  />
-                ))}
+        {/* Right Content Area */}
+        <main className="flex-1 py-6 pr-6 overflow-y-auto">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {/* Use loading and assignments here */}
+            {loading ? (
+              [...Array(4)].map((_, i) => (
+                <AssignmentCardSkeleton key={i} />
+              ))
+            ) : assignments.length === 0 ? (
+              <div className="text-center py-20 opacity-40">
+                <p className={subTextColor}>No assignments created for this class yet.</p>
+              </div>
+            ) : (
+              assignments.map((a) => (
+                <Assignmentcard
+                  key={a.id}
+                  id={a.id}
+                  user="teacher"
+                  title={a.title}
+                  description={a.description}
+                  createdAt={a.createdAt}
+                  deadline={a.deadline}
+                />
+              ))
+            )}
           </div>
         </main>
-        {/* // After the assignments list
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-[#2E3A59] mb-3">Classroom Chat</h2>
-          <div className="max-w-4xl">
-            <ClassroomChat roomId={`class-${classId}`} token={token} />
-          </div>
-        </div> */}
-
       </div>
     </div>
   );

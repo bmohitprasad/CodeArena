@@ -1,29 +1,28 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
-import { ChevronLeft, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { ChevronLeft, CheckCircle } from "lucide-react";
 import axios from "axios";
 import { BACKEND_URL } from "../../config";
-
-interface TeacherProfile {
-  id: number;
-  name: string;
-  department: string;
-  email?: string;
-  password?: string;
-}
+import { useTheme } from "../../context/ThemeContext";
 
 export default function TeacherProfilePage() {
   const navigate = useNavigate();
+  const { darkMode } = useTheme();
   
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<any>({});
-  const [showPassword, setShowPassword] = useState(false);
+  // const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F8FAFC]";
+  const cardBg = darkMode ? "bg-[#0F172A] border-slate-800" : "bg-white border-[#E2E8F0]";
+  const headingColor = darkMode ? "text-white" : "text-[#0F172A]";
+  const inputStyle = darkMode ? "bg-slate-900 border-slate-700 text-white focus:border-indigo-500" : "bg-white border-slate-200";
 
   useEffect(() => {
     loadProfile();
@@ -31,246 +30,105 @@ export default function TeacherProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const teacherId = localStorage.getItem("teacherId");
-
-      // Mock data - in real app, fetch from backend
-      if (teacherId) {
-        const mockProfile: TeacherProfile = {
-          id: parseInt(teacherId),
-          name: "Dr. Jane Smith",
-          department: "Computer Science",
-          email: "jane@example.com",
-        };
-        setProfile(mockProfile);
-        setFormData(mockProfile);
-      }
+      const token = localStorage.getItem("jwt");
+      const response = await axios.get(`${BACKEND_URL}/api/v1/admin/profile`, {
+        headers: { Authorization: token }
+      });
+      const data = response.data.teacher;
+      setProfile(data);
+      setFormData(data);
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to load profile" });
+      setMessage({ type: "error", text: "Failed to fetch instructor data" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev: any) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleSave = async () => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem("jwt");
       const teacherId = localStorage.getItem("teacherId");
       
       const response = await axios.post(
         `${BACKEND_URL}/api/v1/admin/profile/update`,
         {
-          id: parseInt(teacherId || "0"),
+          id: Number(teacherId),
           name: formData.name,
           dept: formData.department,
           password: formData.password || undefined
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: token } }
       );
 
       setProfile(response.data.teacher);
       setFormData(response.data.teacher);
       setEditMode(false);
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      setMessage({ type: "success", text: "Instructor profile updated!" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      console.error('Profile update error:', error);
-      setMessage({ 
-        type: "error", 
-        text: error.response?.data?.error || error.response?.data?.message || "Failed to update profile" 
-      });
+      setMessage({ type: "error", text: error.response?.data?.message || "Update failed" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-[#E2E8F0] dark:from-[#0f1419] dark:to-[#1a1a2e]">
-        <Appbar />
-        <div className="flex flex-1">
-          <Sidebar user="teacher" />
-          <div className="flex-1 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <div className="inline-block animate-spin h-8 w-8 text-[#2563EB] mb-4">
-                <div className="h-8 w-8 border-4 border-[#2563EB] border-t-transparent rounded-full"></div>
-              </div>
-              <p className="text-[#64748B] dark:text-[#98A2B3]">Loading profile...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className={`min-h-screen ${pageBg}`}><Appbar /><div className="flex justify-center mt-20 text-indigo-500 animate-spin">●</div></div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-[#E2E8F0] dark:from-[#0f1419] dark:to-[#1a1a2e] transition-colors duration-300">
+    <div className={`min-h-screen flex flex-col ${pageBg} transition-all duration-300`}>
       <Appbar />
       <div className="flex flex-1">
         <Sidebar user="teacher" />
         <div className="flex-1 p-6">
-          {/* Header */}
-          <div className="mb-6">
-            <button
-              onClick={() => navigate("/teacher/classes")}
-              className="flex items-center gap-2 text-[#2563EB] hover:text-[#1E4FCC] mb-4 transition"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </button>
-            <h1 className="text-3xl font-bold text-[#0F172A] dark:text-white">Profile</h1>
-            <p className="text-[#64748B] dark:text-[#98A2B3] mt-1">
-              {editMode ? "Edit your profile information" : "View and manage your profile"}
-            </p>
-          </div>
+          <button onClick={() => navigate("/teacher/classes")} className="flex items-center gap-2 text-indigo-500 mb-4 font-bold">
+            <ChevronLeft size={16} /> Back to Classrooms
+          </button>
+          
+          <h1 className={`text-3xl font-black mb-6 ${headingColor}`}>Instructor Settings</h1>
 
-          {/* Messages */}
           {message && (
-            <div
-              className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-                message.type === "success"
-                  ? "bg-[#DCFCE7] text-[#166534]"
-                  : "bg-[#FEE2E2] text-[#991B1B]"
-              }`}
-            >
-              {message.type === "success" ? (
-                <CheckCircle className="h-5 w-5" />
-              ) : (
-                <AlertCircle className="h-5 w-5" />
-              )}
-              {message.text}
+            <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${message.type === "success" ? "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
+              <CheckCircle size={20} />
+              <span className="text-sm font-bold">{message.text}</span>
             </div>
           )}
 
-          {/* Profile Content */}
-          <div className="max-w-2xl">
-            <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-[#E2E8F0] dark:border-[#333] shadow-sm p-6">
-              {/* Profile Header */}
-              <div className="flex items-center justify-between mb-6 pb-6 border-b border-[#E2E8F0] dark:border-[#333]">
-                <div>
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center text-white text-2xl font-bold">
-                    {profile?.name?.charAt(0).toUpperCase()}
-                  </div>
-                </div>
-                {!editMode && (
-                  <button
-                    onClick={() => setEditMode(true)}
-                    className="px-6 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition font-semibold"
-                  >
-                    Edit Profile
+          <div className={`${cardBg} rounded-2xl border p-8 max-w-2xl shadow-2xl relative overflow-hidden`}>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-blue-600"></div>
+            
+            <div className="flex items-center justify-between mb-8 pb-8 border-b border-inherit">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-black shadow-lg">
+                {profile?.name?.charAt(0)}
+              </div>
+              {!editMode && (
+                <button onClick={() => setEditMode(true)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20">
+                  Edit Profile
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="full-name" className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Full Name</label>
+                <input id="full-name" name="name" title="Full Name" placeholder="Enter your full name" value={formData.name || ""} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={!editMode} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
+              </div>
+
+              <div>
+                <label htmlFor="department" className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Department</label>
+                <input id="department" name="department" title="Department" placeholder="Enter your department" value={formData.department || ""} onChange={(e) => setFormData({...formData, department: e.target.value})} disabled={!editMode} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
+              </div>
+
+              {editMode && (
+                <div className="pt-4 flex gap-3">
+                  <button onClick={handleSave} disabled={submitting} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">
+                    {submitting ? "Applying Changes..." : "Confirm Update"}
                   </button>
-                )}
-              </div>
-
-              {/* Profile Form */}
-              <div className="space-y-6">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-semibold text-[#1E293B] dark:text-white mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    title="Full Name"
-                    value={formData.name || ""}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full px-4 py-3 border border-[#CBD5E1] dark:border-[#444] rounded-lg bg-white dark:bg-[#2a2a3e] text-[#0F172A] dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                  />
+                  <button onClick={() => {setEditMode(false); setFormData(profile);}} className={`flex-1 py-3 rounded-xl font-bold border ${darkMode ? 'border-slate-700 text-white' : 'border-slate-200'}`}>
+                    Cancel
+                  </button>
                 </div>
-
-                {/* Department */}
-                <div>
-                  <label className="block text-sm font-semibold text-[#1E293B] dark:text-white mb-2">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    name="department"
-                    title="Department"
-                    value={formData.department || ""}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full px-4 py-3 border border-[#CBD5E1] dark:border-[#444] rounded-lg bg-white dark:bg-[#2a2a3e] text-[#0F172A] dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-semibold text-[#1E293B] dark:text-white mb-2">
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    title="Email Address"
-                    value={formData.email || ""}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full px-4 py-3 border border-[#CBD5E1] dark:border-[#444] rounded-lg bg-white dark:bg-[#2a2a3e] text-[#0F172A] dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                  />
-                </div>
-
-                {/* Password */}
-                {editMode && (
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1E293B] dark:text-white mb-2">
-                      Change Password (Leave blank to keep current)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        title="New Password"
-                        placeholder="Enter new password"
-                        value={formData.password || ""}
-                        onChange={handleInputChange}
-                        className="flex-1 px-4 py-3 border border-[#CBD5E1] dark:border-[#444] rounded-lg bg-white dark:bg-[#2a2a3e] text-[#0F172A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="px-4 py-3 border border-[#CBD5E1] dark:border-[#444] rounded-lg hover:bg-[#F1F5F9] dark:hover:bg-[#2a2a3e] transition"
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                {editMode && (
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleSave}
-                      disabled={submitting}
-                      className="flex-1 px-6 py-3 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {submitting ? "Saving..." : "Save Changes"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditMode(false);
-                        setFormData(profile);
-                      }}
-                      disabled={submitting}
-                      className="flex-1 px-6 py-3 border border-[#CBD5E1] dark:border-[#444] text-[#1E293B] dark:text-white rounded-lg hover:bg-[#F1F5F9] dark:hover:bg-[#2a2a3e] transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

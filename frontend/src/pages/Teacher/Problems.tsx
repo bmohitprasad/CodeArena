@@ -14,271 +14,185 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/TextArea";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 export const TeacherProblems = () => {
+  const { darkMode } = useTheme();
   const { id } = useParams<{ id: string }>();
   const assignment_id = useMemo(() => parseInt(id || "0", 10), [id]);
 
-  const navigate = useNavigate();
-
+  // Data Hooks
   const [refresh, setRefresh] = useState(false);
   const { loading, problems } = Problems({ assignment_id, refresh });
-
   const { loadingStudents, submittedStudents } = Submissions({ assignment_id });
 
-  // Create form state
+  // Form State
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
   const [creating, setCreating] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const token = useMemo(() => localStorage.getItem("jwt") || "", []);
-  const authHeader = useMemo(
-    () => ({ Authorization: token ? `${token}` : "" }),
-    [token]
-  );
+  const token = localStorage.getItem("jwt") || "";
+  const authHeader = useMemo(() => ({ Authorization: token }), [token]);
 
-  const clearForm = useCallback(() => {
-    setTitle("");
-    setContent("");
-    setExpectedOutput("");
-  }, []);
-
-  // Expected Output is optional now
-  const isCreateDisabled =
-    creating ||
-    !title.trim() ||
-    !content.trim() ||
-    !assignment_id ||
-    Number.isNaN(assignment_id);
+  // Theme Tokens
+  const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F5F7FA]";
+  const cardBg = darkMode ? "bg-[#0F172A] border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-md";
+  const headingColor = darkMode ? "text-white" : "text-[#1E293B]";
+  const labelStyle = `text-[10px] font-black uppercase tracking-widest mb-2 block ${darkMode ? 'text-slate-500' : 'text-slate-400'}`;
+  const inputStyle = darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-blue-500" : "bg-white border-slate-200";
 
   const handleCreateProblem = useCallback(async () => {
-    setSuccessMsg(null);
-    if (isCreateDisabled) {
-      setErrorMsg("Title and Description are required, and assignment ID must be valid.");
+    if (!title.trim() || !content.trim()) {
+      setErrorMsg("Title and Description are required.");
       return;
     }
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     try {
       setCreating(true);
-      const payload = {
-        title,
-        content,
-        expectedOutput: expectedOutput.trim() ? expectedOutput : null
-      };
       await axios.post(
         `${BACKEND_URL}/api/v1/admin/assignment/${assignment_id}/add-problem`,
-        payload,
+        { title, content, expectedOutput: expectedOutput.trim() || null },
         { headers: authHeader }
       );
-
-      clearForm();
-      setFormOpen(false);
+      setTitle(""); setContent(""); setExpectedOutput("");
       setRefresh((prev) => !prev);
-      setSuccessMsg("Problem created successfully.");
+      setSuccessMsg("Problem deployed successfully!");
     } catch (error: any) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        const msg =
-          typeof data === "string"
-            ? data
-            : data?.message || data?.error || "Request failed";
-        setErrorMsg(
-          `Failed to create problem${status ? ` (${status})` : ""}: ${msg}`
-        );
-        console.error("Create problem error:", status, data);
-      } else {
-        setErrorMsg(error?.message || "Unknown error");
-        console.error("Create problem error:", error);
-      }
+      setErrorMsg(error.response?.data?.message || "Failed to create problem");
     } finally {
       setCreating(false);
-      setTimeout(() => setSuccessMsg(null), 2500);
+      setTimeout(() => setSuccessMsg(null), 3000);
     }
-  }, [
-    isCreateDisabled,
-    assignment_id,
-    title,
-    content,
-    expectedOutput,
-    authHeader,
-    clearForm,
-  ]);
-
-  // Delete assignment
-  const deleteAssignment = useCallback(async () => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      await axios.delete(
-        `${BACKEND_URL}/api/v1/admin/assignment/${assignment_id}`,
-        { headers: authHeader }
-      );
-      navigate("/teacher/classes");
-    } catch (error: any) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        const msg =
-          typeof data === "string"
-            ? data
-            : data?.message || data?.error || "Request failed";
-        setErrorMsg(
-          `Failed to delete assignment${status ? ` (${status})` : ""}: ${msg}`
-        );
-      } else {
-        setErrorMsg(error?.message || "Unknown error");
-      }
-    }
-  }, [assignment_id, authHeader, navigate]);
+  }, [assignment_id, title, content, expectedOutput, authHeader]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+    <div className={`min-h-screen flex flex-col ${pageBg} transition-colors duration-300`}>
       <Appbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar user="teacher" />
-        <main className="flex-1 p-6 flex gap-6 mt-16">
-          {/* Left Column */}
-          <div className="w-1/3 flex flex-col gap-6">
-            {/* Create Problem */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <button
-                type="button"
-                className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-md"
-                onClick={() => setFormOpen((o) => !o)}
-                aria-expanded={formOpen ? "true" : "false"}
-                aria-controls="create-problem-form"
+        
+        <main className="flex-1 p-6 flex flex-col lg:flex-row gap-8 mt-16 overflow-y-auto">
+          {/* Builder Sidebar */}
+          <div className="w-full lg:w-[400px] flex flex-col gap-6">
+            <div className={`${cardBg} p-6 rounded-2xl border transition-all`}>
+              <button 
+                onClick={() => setFormOpen(!formOpen)}
+                className="flex items-center justify-between w-full mb-6 group"
               >
-                <h2 className="text-lg font-semibold text-[#1E293B]">
-                  Create Problem
-                </h2>
-                {formOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                <h2 className={`text-xl font-black tracking-tight ${headingColor}`}>Problem Builder</h2>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  {formOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
               </button>
 
               {formOpen && (
-                <div id="create-problem-form" className="space-y-4 mt-4">
-                  <div>
-                    <label htmlFor="problem-title" className="block text-sm font-medium text-gray-700 mb-1">
-                      Title
-                    </label>
+                <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex flex-col">
+                    <label htmlFor="problem-title" className={labelStyle}>Problem Title</label>
                     <Input
                       id="problem-title"
                       title="Problem Title"
-                      placeholder="e.g. Sum of Two Numbers"
+                      placeholder="e.g. Palindrome Check"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      disabled={creating}
+                      className={inputStyle}
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="problem-description" className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
+                  <div className="flex flex-col">
+                    <label htmlFor="task-description" className={labelStyle}>Task Description</label>
                     <Textarea
-                      id="problem-description"
-                      title="Problem Description"
-                      placeholder="e.g. Write a program to add two integers."
+                      id="task-description"
+                      title="Task Description"
+                      placeholder="What should the student solve?"
                       value={content}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        setContent(e.target.value)
-                      }
-                      disabled={creating}
+                      onChange={(e: any) => setContent(e.target.value)}
+                      className={`min-h-[120px] resize-none border-2 ${
+                        darkMode 
+                          ? "bg-slate-900 border-slate-800 text-white placeholder:text-slate-600 focus:border-blue-500" 
+                          : "bg-white border-slate-200 text-slate-900"
+                      }`}
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="problem-expected" className="block text-sm font-medium text-gray-700 mb-1">
-                      Expected Output <span className="text-gray-400">(optional)</span>
-                    </label>
+                  <div className="flex flex-col">
+                    <label htmlFor="validation-output" className={labelStyle}>Validation Output (Optional)</label>
                     <Textarea
-                      id="problem-expected"
-                      title="Problem Expected Output"
-                      placeholder="e.g. 5"
+                      id="validation-output"
+                      title="Validation Output"
+                      placeholder="The raw string the editor should match..."
                       value={expectedOutput}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        setExpectedOutput(e.target.value)
-                      }
-                      disabled={creating}
+                      onChange={(e: any) => setExpectedOutput(e.target.value)}
+                      className={`font-mono text-xs min-h-[80px] resize-none border-2 ${
+                        darkMode 
+                          ? "bg-slate-900 border-slate-800 text-blue-300 placeholder:text-slate-600 focus:border-blue-500" 
+                          : "bg-slate-50 border-slate-200 text-slate-700"
+                      }`}
                     />
                   </div>
 
-                  <div className="pt-1 flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleCreateProblem}
-                      disabled={isCreateDisabled}
-                      className="flex-1"
+                  <div className="pt-2">
+                    <Button 
+                      onClick={handleCreateProblem} 
+                      disabled={creating || !title.trim()} 
+                      className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95"
                     >
-                      {creating ? "Creating..." : "Create Problem"}
+                      {creating ? "Deploying..." : "Deploy Problem"}
                     </Button>
-                    {errorMsg && (
-                      <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded" role="alert">
-                        {errorMsg}
-                      </div>
-                    )}
-                    {successMsg && (
-                      <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded" role="status">
-                        {successMsg}
-                      </div>
-                    )}
+                    {errorMsg && <p className="mt-3 text-xs text-red-500 font-medium text-center">{errorMsg}</p>}
+                    {successMsg && <p className="mt-3 text-xs text-emerald-500 font-medium text-center">{successMsg}</p>}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Submitted Students */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <h2 className="text-lg font-semibold text-[#1E293B] mb-4">
-                🎓 Submitted Students
+            {/* Turn-ins Section */}
+            <div className={`${cardBg} p-6 rounded-2xl border`}>
+              <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                🎓 Student Turn-ins
               </h2>
-              <div className="flex flex-col gap-2">
-                {loadingStudents
-                  ? [...Array(3)].map((_, i) => (
-                      <div key={i} className="h-10 bg-gray-200 rounded-md animate-pulse" />
-                    ))
-                  : submittedStudents.map((e) => (
-                      <StudentCard
-                        key={e.student_id}
-                        student_id={e.student_id}
-                        name={e.student.name}
-                      />
-                    ))}
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={deleteAssignment}
-                  className="flex"
-                >
-                  Delete Assignment
-                </Button>
+              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                {loadingStudents ? (
+                  <div className="h-10 w-full animate-pulse bg-slate-800/50 rounded-lg" />
+                ) : submittedStudents.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic py-2">No submissions yet.</p>
+                ) : (
+                  submittedStudents.map(s => (
+                    <StudentCard key={s.student_id} student_id={s.student_id} name={s.student.name} />
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column: Problems List */}
+          {/* Problems List */}
           <div className="flex-1 space-y-4">
-            {loading
-              ? [...Array(6)].map((_, i) => <ProblemCardSkeleton key={i} />)
-              : problems.map((p, index) => (
-                  <ProblemCard
-                    key={p.id}
-                    serial={index + 1}   
-                    id={p.id}
-                    title={p.title}
-                    content={p.content}
-                    assignmentId={p.assignmentId}
-                    expectedOutput={p.expectedOutput}
-                  />
-                ))}
+            <div className="flex items-center justify-between mb-2">
+               <h3 className={`text-sm font-bold uppercase tracking-tighter ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                 Assignment Problems ({problems.length})
+               </h3>
+            </div>
+            {loading ? (
+              [...Array(3)].map((_, i) => <ProblemCardSkeleton key={i} />)
+            ) : (
+              problems.map((p, i) => (
+                <ProblemCard 
+                  key={p.id} 
+                  serial={i + 1} 
+                  title={p.title} 
+                  content={p.content} 
+                  id={p.id} 
+                  assignmentId={p.assignmentId} 
+                />
+              ))
+            )}
           </div>
         </main>
       </div>

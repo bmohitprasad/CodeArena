@@ -173,7 +173,7 @@ export default function CodeEditor() {
             {/* Input box */}
             <div className={`${cardBg} border border-[#E2E8F0] rounded-xl p-3 shadow-sm mb-4`}>
               <div className="flex items-center justify-between">
-                <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${subTextColor}`}>Input (stdin)</h3>                
+                <label htmlFor="stdin-input" className={`text-xs font-bold uppercase tracking-wider mb-2 block ${subTextColor}`}>Input (stdin)</label>                
                 <button
                   className="text-xs text-[#2563EB] hover:underline"
                   onClick={() => setInput("")}
@@ -182,6 +182,7 @@ export default function CodeEditor() {
                 </button>
               </div>
               <textarea
+                id="stdin-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 title="Standard Input"

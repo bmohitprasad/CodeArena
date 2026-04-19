@@ -3,8 +3,10 @@ import axios from 'axios';
 import { BACKEND_URL } from '../../config';
 import { useNavigate, Link } from 'react-router-dom';
 import { Appbar } from '../../components/Appbar';
+import { useTheme } from '../../context/ThemeContext'; // Import Theme
 
 const TeacherAuth: React.FC = () => {
+  const { darkMode } = useTheme();
   const [isSignup, setIsSignup] = useState(true);
   const [postInputs, setPostInputs] = useState({
     name: '',
@@ -17,6 +19,15 @@ const TeacherAuth: React.FC = () => {
   const [error, setError] = useState('');
   const [showGuide, setShowGuide] = useState(true);
   const navigate = useNavigate();
+
+  // --- THEME TOKENS ---
+  const pageBg = darkMode ? "bg-[#1E293B]" : "bg-gradient-to-b from-slate-50 to-slate-100";
+  const cardBg = darkMode ? "bg-[#0F172A] border-slate-800" : "bg-white border-slate-200";
+  const headingColor = darkMode ? "text-white" : "text-[#1E293B]";
+  const subTextColor = darkMode ? "text-slate-400" : "text-slate-600";
+  const inputStyle = darkMode 
+    ? "bg-slate-900 border-slate-700 text-white placeholder:text-slate-600 focus:border-blue-500" 
+    : "bg-white border-slate-200 text-slate-900";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPostInputs({ ...postInputs, [e.target.name]: e.target.value });
@@ -46,7 +57,6 @@ const TeacherAuth: React.FC = () => {
 
       navigate('/teacher/classes');
     } catch (err: any) {
-      console.error(err);
       setError(err?.response?.data?.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -54,92 +64,96 @@ const TeacherAuth: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className={`flex min-h-screen flex-col ${pageBg} transition-colors duration-300`}>
       <Appbar />
       <main className="flex flex-1 items-center justify-center px-4 py-8">
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
+          
           {/* Left: Intro / Guide */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+          <section className={`rounded-2xl border p-6 shadow-xl md:p-8 ${cardBg}`}>
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className={`text-3xl font-black tracking-tighter ${headingColor}`}>
                 Instructor Portal
               </h1>
               <Link
                 to="/student/home"
-                className="text-sm text-blue-600 hover:underline"
-                aria-label="Switch to Student"
+                className="text-sm font-bold text-blue-500 hover:text-blue-400 transition"
               >
                 Switch to Student
               </Link>
             </div>
 
-            <p className="mt-2 text-sm text-slate-600">
-              Create classes and publish assignments.
+            <p className={`mt-3 text-sm font-medium ${subTextColor}`}>
+              Build your digital classroom and evaluate code in real-time.
             </p>
 
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li className="flex items-start gap-2">
-                <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500"></span>
-                Generate join codes so students can enroll instantly.
+            <ul className="mt-6 space-y-4 text-sm">
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+                <span className={darkMode ? "text-slate-300" : "text-slate-700"}>
+                  Generate join codes for instant student enrollment.
+                </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500"></span>
-                Add problems with starter code and custom inputs.
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+                <span className={darkMode ? "text-slate-300" : "text-slate-700"}>
+                  Craft custom problems with expected output validation.
+                </span>
               </li>
             </ul>
 
-            <div className="mt-6">
+            <div className="mt-8">
               <button
                 onClick={() => setShowGuide((v) => !v)}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-xs font-bold uppercase tracking-widest text-blue-500 hover:underline"
               >
-                {showGuide ? 'Hide' : 'Show'} getting started
+                {showGuide ? 'Hide' : 'Show'} Onboarding Guide
               </button>
 
               {showGuide && (
-                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  <ol className="list-decimal space-y-2 pl-5">
-                    <li>Create an account or sign in below.</li>
-                    <li>Create a class → share the join code with students.</li>
-                    <li>Publish an assignment → add problems.</li>
-                    <li>Review submissions and provide feedback.</li>
+                <div className={`mt-4 overflow-hidden rounded-xl border p-5 text-sm animate-in fade-in slide-in-from-top-2 ${
+                  darkMode ? "bg-slate-900/50 border-slate-800 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700"
+                }`}>
+                  <ol className="list-decimal space-y-3 pl-5 font-medium">
+                    <li>Create an instructor account.</li>
+                    <li>Initialize a class and share the unique join code.</li>
+                    <li>Create assignments and populate them with problems.</li>
+                    <li>Monitor real-time student submission history.</li>
                   </ol>
-                  <p className="mt-3 text-xs text-slate-500">
-                    Tip: Keep class names and problem statements concise and
-                    consistent for easier navigation.
-                  </p>
                 </div>
               )}
             </div>
           </section>
 
           {/* Right: Auth Card */}
-          <section className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm md:p-8">
-            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-purple-100 opacity-60 blur-2xl" />
-            <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-pink-100 opacity-60 blur-2xl" />
+          <section className={`relative overflow-hidden rounded-2xl border p-6 shadow-2xl md:p-8 ${cardBg}`}>
+            {/* Ambient Glow Effects */}
+            <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
 
             <div className="relative">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">
-                  {isSignup ? 'Teacher Sign Up' : 'Teacher Sign In'}
+              <div className="flex items-center justify-between mb-8">
+                <h2 className={`text-xl font-bold ${headingColor}`}>
+                  {isSignup ? 'Create Account' : 'Welcome Back'}
                 </h2>
                 <button
                   onClick={() => setIsSignup((v) => !v)}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-xs font-bold uppercase tracking-widest text-blue-500 hover:text-blue-400"
                   disabled={loading}
                 >
-                  {isSignup ? 'Use existing account' : 'Create new account'}
+                  {isSignup ? 'Sign In Instead' : 'Sign Up Instead'}
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {isSignup && (
-                  <>
+                  <div className="grid grid-cols-2 gap-4">
                     <input
                       type="text"
                       name="name"
+                      title="Full name"
                       placeholder="Full name"
-                      className="w-full rounded-md border px-4 py-2"
+                      className={`w-full rounded-lg border px-4 py-3 outline-none transition-all ${inputStyle}`}
                       value={postInputs.name}
                       onChange={handleChange}
                       required
@@ -148,21 +162,23 @@ const TeacherAuth: React.FC = () => {
                     <input
                       type="text"
                       name="dept"
+                      title="Department"
                       placeholder="Department"
-                      className="w-full rounded-md border px-4 py-2"
+                      className={`w-full rounded-lg border px-4 py-3 outline-none transition-all ${inputStyle}`}
                       value={postInputs.dept}
                       onChange={handleChange}
                       required
                       disabled={loading}
                     />
-                  </>
+                  </div>
                 )}
 
                 <input
                   type="email"
                   name="email"
-                  placeholder="Email"
-                  className="w-full rounded-md border px-4 py-2"
+                  title="Email Address"
+                  placeholder="Email Address"
+                  className={`w-full rounded-lg border px-4 py-3 outline-none transition-all ${inputStyle}`}
                   value={postInputs.email}
                   onChange={handleChange}
                   required
@@ -171,8 +187,9 @@ const TeacherAuth: React.FC = () => {
                 <input
                   type="password"
                   name="password"
+                  title="Password"
                   placeholder="Password"
-                  className="w-full rounded-md border px-4 py-2"
+                  className={`w-full rounded-lg border px-4 py-3 outline-none transition-all ${inputStyle}`}
                   value={postInputs.password}
                   onChange={handleChange}
                   required
@@ -181,53 +198,20 @@ const TeacherAuth: React.FC = () => {
 
                 <button
                   type="submit"
-                  className={`w-full rounded-md py-2 text-white transition ${
+                  className={`w-full rounded-xl py-4 text-sm font-bold uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 ${
                     loading
                       ? 'bg-blue-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
                   }`}
                   disabled={loading}
                 >
-                  {loading
-                    ? isSignup
-                      ? 'Signing up...'
-                      : 'Signing in...'
-                    : isSignup
-                    ? 'Sign Up'
-                    : 'Sign In'}
+                  {loading ? 'Processing...' : isSignup ? 'Initialize Account' : 'Access Portal'}
                 </button>
               </form>
 
               {error && (
-                <p className="mt-3 text-center text-sm text-red-600">{error}</p>
-              )}
-
-              {loading && (
-                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600">
-                  <svg
-                    className="h-4 w-4 animate-spin text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                  <span>
-                    {isSignup ? 'Creating account...' : 'Authenticating...'}
-                  </span>
+                <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center text-xs font-bold text-red-500">
+                  {error}
                 </div>
               )}
             </div>
