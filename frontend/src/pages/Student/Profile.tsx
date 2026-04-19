@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
-import { ChevronLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import axios from "axios";
 import { BACKEND_URL } from "../../config";
 import { useTheme } from "../../context/ThemeContext";
