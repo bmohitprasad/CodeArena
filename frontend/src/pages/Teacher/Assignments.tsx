@@ -35,12 +35,25 @@ export const TeacherAssignments = () => {
   const navigate = useNavigate();
 
   const handleDeleteClass = async (classId: number) => {
-    await axios.delete(`${BACKEND_URL}/api/v1/admin/class/${classId}`, {
-      headers: {
-        Authorization: localStorage.getItem("jwt")
-      }
-    });
-    navigate("/teacher/classes");
+  // Add a clear warning message
+    const isConfirmed = window.confirm(
+      "⚠️ Warning: Are you sure you want to delete this class? This action cannot be undone and will remove all student enrollments and assignments."
+    );
+
+    if (!isConfirmed) return; // Exit if the teacher clicks 'Cancel'
+
+    try {
+      await axios.delete(`${BACKEND_URL}/api/v1/admin/class/${classId}`, {
+        headers: {
+          Authorization: localStorage.getItem("jwt")
+        }
+      });
+      // Redirect after successful deletion
+      navigate("/teacher/classes");
+    } catch (error) {
+      console.error("Failed to delete class:", error);
+      alert("An error occurred while trying to delete the class.");
+    }
   };
 
   const handleCreateAssignment = async () => {
@@ -143,8 +156,12 @@ export const TeacherAssignments = () => {
             </div>
           </div>
           
-          <Button variant="destructive" onClick={() => handleDeleteClass(classId)} className="w-full opacity-70 hover:opacity-100 transition-opacity">
-             Archive / Delete Class
+          <Button 
+            variant="destructive" 
+            onClick={() => handleDeleteClass(classId)} 
+            className="w-full opacity-60 hover:opacity-100 transition-all duration-200 font-bold"
+          >
+            Archive / Delete Class
           </Button>
         </div>
 

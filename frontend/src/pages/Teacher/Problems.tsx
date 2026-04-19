@@ -77,7 +77,7 @@ export const TeacherProblems = () => {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar user="teacher" />
         
-        <main className="flex-1 p-6 flex flex-col lg:flex-row gap-8 mt-16 overflow-y-auto">
+        <main className="flex-1 p-6 flex flex-col lg:flex-row gap-8 overflow-y-auto h-[calc(100vh-64px)]">          
           {/* Builder Sidebar */}
           <div className="w-full lg:w-[400px] flex flex-col gap-6">
             <div className={`${cardBg} p-6 rounded-2xl border transition-all`}>
