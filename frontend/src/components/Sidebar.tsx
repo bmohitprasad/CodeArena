@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Home,
   Settings,
@@ -8,83 +8,134 @@ import {
   User,
   BookOpen,
 } from "lucide-react";
-
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
 export interface SidebarProps {
-  user: string
+  user: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  user,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { darkMode } = useTheme();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const handleLogout = () => {
-    localStorage.removeItem("jwt");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("teacherId");
+    localStorage.clear(); // Cleans up all auth tokens at once
     navigate("/guest");
   };
+
+  /**
+   * THEME TOKENS
+   * Sidebar should be solid (not gradient) to provide stability.
+   */
+  const sidebarBg = darkMode 
+    ? "bg-[#0F172A] border-slate-800" 
+    : "bg-white border-slate-200";
 
   return (
     <aside
       className={`${
-        isOpen ? "w-64" : "w-16"
-      } bg-white dark:bg-[#1a1a2e] border-r border-[#E2E8F0] dark:border-[#333] px-4 py-6 space-y-8 shadow-sm transition-all duration-300 relative flex flex-col justify-between`}
+        isOpen ? "w-64" : "w-20"
+      } ${sidebarBg} border-r px-4 py-6 shadow-sm transition-all duration-300 relative flex flex-col justify-between h-[calc(100vh-64px)] sticky top-16`}
     >
-      {/* Toggle Button */}
+      {/* Toggle Button - Positioned on the border */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-6 bg-white dark:bg-[#2a2a3e] border border-gray-300 dark:border-[#444] rounded-full p-1 shadow hover:bg-gray-100 dark:hover:bg-[#3a3a4e] transition"
+        className={`absolute -right-3 top-6 rounded-full p-1 shadow-md border transition-colors ${
+          darkMode 
+            ? "bg-[#1E293B] border-slate-700 text-slate-300 hover:text-white" 
+            : "bg-white border-slate-200 text-slate-600 hover:text-blue-600"
+        }`}
         title="Toggle sidebar"
       >
-        {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
       </button>
 
-      {/* Sidebar Links */}
-      <div className="space-y-4">
-        <SidebarItem icon={<Home />} label="Classes" to={`/${user}/classes`} isOpen={isOpen} />
-        <SidebarItem icon={<BookOpen />} label="Assignments" to={`/${user}/assignments`} isOpen={isOpen} />
-        <SidebarItem icon={<User />} label="Profile" to={`/${user}/profile`} isOpen={isOpen} />
-        <SidebarItem icon={<Settings />} label="Settings" to={`/${user}/settings`} isOpen={isOpen} />
+      {/* Navigation Links */}
+      <div className="space-y-2">
+        <SidebarItem 
+          icon={<Home size={22} />} 
+          label="Classes" 
+          to={`/${user}/classes`} 
+          isOpen={isOpen} 
+          isActive={location.pathname.includes('classes')}
+        />
+        <SidebarItem 
+          icon={<BookOpen size={22} />} 
+          label="Assignments" 
+          to={`/${user}/assignments`} 
+          isOpen={isOpen} 
+          isActive={location.pathname.includes('assignments')}
+        />
+        <SidebarItem 
+          icon={<User size={22} />} 
+          label="Profile" 
+          to={`/${user}/profile`} 
+          isOpen={isOpen} 
+          isActive={location.pathname.includes('profile')}
+        />
+        <SidebarItem 
+          icon={<Settings size={22} />} 
+          label="Settings" 
+          to={`/${user}/settings`} 
+          isOpen={isOpen} 
+          isActive={location.pathname.includes('settings')}
+        />
       </div>
 
-      {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 transition w-full"
-        title="Logout"
-      >
-        <LogOut />
-        {isOpen && <span className="font-medium">Logout</span>}
-      </button>
+      {/* Logout Section */}
+      <div className={`pt-4 border-t ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 w-full ${
+            darkMode 
+              ? "text-red-400 hover:bg-red-500/10" 
+              : "text-red-600 hover:bg-red-50"
+          }`}
+          title="Logout"
+        >
+          <LogOut size={22} />
+          {isOpen && <span className="font-semibold">Logout</span>}
+        </button>
+      </div>
     </aside>
   );
 };
 
-const SidebarItem = ({
-  icon,
-  label,
-  to,
-  isOpen,
-}: {
+interface ItemProps {
   icon: React.ReactNode;
   label: string;
   to: string;
   isOpen: boolean;
-}) => (
-  <Link
-    to={to}
-    className="flex items-center gap-3 px-3 py-2 rounded-md text-[#1E293B] dark:text-[#E2E8F0] hover:bg-[#E2E8F0] dark:hover:bg-[#2a2a3e] hover:text-[#2E3A59] dark:hover:text-white transition"
-    title={label}
-  >
-    {icon}
-    {isOpen && <span className="font-medium">{label}</span>}
-  </Link>
-);
+  isActive: boolean;
+}
+
+const SidebarItem = ({ icon, label, to, isOpen, isActive }: ItemProps) => {
+  const { darkMode } = useTheme();
+
+  const activeStyles = isActive 
+    ? (darkMode ? "bg-blue-600/20 text-blue-400" : "bg-blue-50 text-blue-600")
+    : (darkMode ? "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900");
+
+  return (
+    <Link
+      to={to}
+      className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 group ${activeStyles}`}
+      title={label}
+    >
+      <div className={`${isActive ? "scale-110" : "group-hover:scale-110"} transition-transform`}>
+        {icon}
+      </div>
+      {isOpen && <span className="font-semibold tracking-wide">{label}</span>}
+      
+      {/* Active Indicator Dot */}
+      {isActive && isOpen && (
+        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+      )}
+    </Link>
+  );
+};

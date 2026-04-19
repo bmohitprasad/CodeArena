@@ -7,6 +7,7 @@ import { StudentProblemCard } from "../../components/StudentProblemCard"
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../../components/ui/Button"
 import { BACKEND_URL } from "../../config"
+import { useTheme } from "../../context/ThemeContext"; // 1. Import Theme
 
 type ProblemStatus = { problemId: number; isSubmitted: boolean };
 
@@ -14,12 +15,18 @@ export const StudentProblems = () => {
   const { id } = useParams<{ id: string }>();
   const assignment_id = parseInt(id || "0");
   const { loading, problems } = Problems({ assignment_id, refresh: true });
+  const { darkMode } = useTheme(); // 2. Consume Theme
 
   const studentId = useMemo(() => Number(localStorage.getItem("studentId") || 0), []);
   const [submitted, setSubmitted] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<number, boolean>>({});
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+
+  // THEME TOKENS
+  const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F5F7FA]";
+  const headingColor = darkMode ? "text-white" : "text-[#2E3A59]";
+  const statusInfoColor = darkMode ? "text-slate-400" : "text-[#64748B]";
 
   useEffect(() => {
     let aborted = false;
@@ -48,26 +55,9 @@ export const StudentProblems = () => {
     return () => { aborted = true; };
   }, [studentId, assignment_id]);
 
-  // async function handleSubmitAssignment() {
-  //   try {
-  //     const res = await fetch(`${BACKEND_URL}/api/student/assignment/${assignment_id}`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ studentId })
-  //     });
-  //     if (!res.ok) throw new Error(`Submit failed (${res.status})`);
-  //     setSubmitted(true);
-  //     alert("Assignment submitted successfully!");
-  //   } catch (e: any) {
-  //     alert(e?.message || "Failed to submit assignment");
-  //   }
-  // }
-
   async function safeJson(res: Response) {
     const text = await res.text();
-
     if (!text) return null;
-
     try {
       return JSON.parse(text);
     } catch {
@@ -81,66 +71,88 @@ export const StudentProblems = () => {
   }, [problems, statusMap]);
 
   async function handleSubmitAssignment() {
-  if (!allProblemsSubmitted) {
-    alert("Please submit all problems before submitting the assignment.");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("jwt"); 
-    const res = await fetch(
-      `${BACKEND_URL}/api/v1/student/assignment/${assignment_id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`
-        },
-        body: JSON.stringify({ studentId })
-      }
-    );
-
-    const data = await safeJson(res);
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Submit failed");
+    if (!allProblemsSubmitted) {
+      alert("Please submit all problems before submitting the assignment.");
+      return;
     }
 
-    setSubmitted(true);
-    alert("Assignment submitted successfully!");
-  } catch (err: any) {
-    alert(err.message || "Failed to submit assignment");
-  }
-}
+    try {
+      const token = localStorage.getItem("jwt"); 
+      const res = await fetch(
+        `${BACKEND_URL}/api/v1/student/assignment/${assignment_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`
+          },
+          body: JSON.stringify({ studentId })
+        }
+      );
 
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data?.error || "Submit failed");
+
+      setSubmitted(true);
+      alert("Assignment submitted successfully!");
+    } catch (err: any) {
+      alert(err.message || "Failed to submit assignment");
+    }
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+    <div className={`min-h-screen flex flex-col ${pageBg} transition-colors duration-300`}>
       <Appbar />
       <div className="flex flex-1">
         <Sidebar user="student" />
         <div className="flex-1 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-[#2E3A59]">Assignment Problems</h1>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+              <h1 className={`text-3xl font-bold ${headingColor}`}>Assignment Problems</h1>
+              <p className={`text-sm mt-1 ${statusInfoColor}`}>
+                {allProblemsSubmitted 
+                  ? "All problems resolved. You can now finalize your submission." 
+                  : "Resolve all problems in the editor to submit the assignment."}
+              </p>
+            </div>
+
             {!submitted ? (
               <Button
                 onClick={handleSubmitAssignment}
-                className="px-6 py-2 rounded-xl text-lg font-semibold bg-green-600 hover:bg-green-700"
-                disabled={!studentId || !assignment_id}
+                className={`px-6 py-2 rounded-xl text-lg font-bold shadow-lg transition-all active:scale-95 ${
+                  allProblemsSubmitted 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                    : "bg-slate-400 text-slate-100 cursor-not-allowed opacity-50"
+                }`}
+                disabled={!studentId || !assignment_id || !allProblemsSubmitted}
               >
                 Submit Assignment
               </Button>
             ) : (
-              <span className="px-6 py-2 rounded-xl text-lg font-semibold bg-gray-300 text-gray-700">
+              <span className={`px-6 py-2 rounded-xl text-lg font-bold border ${
+                darkMode 
+                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" 
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
+              }`}>
                 Assignment Submitted ✅
               </span>
             )}
           </div>
 
-          {statusLoading && <div className="mb-4 text-sm text-[#64748B]">Loading status…</div>}
-          {statusError && <div className="mb-4 text-sm text-[#DC2626]">{statusError}</div>}
+          {statusLoading && (
+            <div className={`mb-6 flex items-center gap-2 text-sm ${statusInfoColor}`}>
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Syncing status...
+            </div>
+          )}
+          
+          {statusError && (
+            <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/50 text-red-500 text-sm">
+              {statusError}
+            </div>
+          )}
 
-          <main className="grid md:grid-cols-2 gap-6">
+          <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
             {loading
               ? [...Array(6)].map((_, i) => <ProblemCardSkeleton key={i} />)
               : problems.map((p, index) => (

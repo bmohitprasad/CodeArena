@@ -9,7 +9,6 @@ import { StudentClasses } from "./pages/Student/Classes"
 import { StudentAssignments } from "./pages/Student/Assignments"
 import { StudentProblems } from "./pages/Student/Problems"
 import CodeEditor from "./pages/Student/CodeEditor"
-import { SubmissionPage } from "./pages/Student/SubmissionPage"
 import StudentProfile from "./pages/Student/Profile"
 import Home from "./pages/Home/Home"
 import { ThemeProvider } from "./context/ThemeContext"
@@ -38,7 +37,6 @@ function App() {
           <Route path="/student/class/:id" element={<StudentAssignments/>}/>
           <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
           <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
-          <Route path="/student/assignment/problem/submissions" element={<SubmissionPage/>}/>
           <Route path="/student/profile" element={<StudentProfile/>}/>
 
           <Route path="/guest" element={<Home/>}/>

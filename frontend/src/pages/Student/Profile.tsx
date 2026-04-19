@@ -225,6 +225,7 @@ export default function ProfilePage() {
                   <input
                     type="text"
                     name="name"
+                    placeholder="Full Name"
                     title="Full Name"
                     value={formData.name || ""}
                     onChange={handleInputChange}
@@ -241,6 +242,7 @@ export default function ProfilePage() {
                   <input
                     type="text"
                     name={userType === "student" ? "roll_number" : "department"}
+                    placeholder={userType === "student" ? "Roll Number" : "Department"}
                     title={userType === "student" ? "Roll Number" : "Department"}
                     value={userType === "student" ? (formData.roll_number || "") : (formData.department || "")}
                     onChange={handleInputChange}
@@ -258,6 +260,7 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       name="branch"
+                      placeholder="Branch"
                       title="Branch"
                       value={formData.branch || ""}
                       onChange={handleInputChange}
@@ -275,6 +278,7 @@ export default function ProfilePage() {
                   <input
                     type="email"
                     name="email"
+                    placeholder="Email Address"
                     title="Email Address"
                     value={formData.email || ""}
                     onChange={handleInputChange}

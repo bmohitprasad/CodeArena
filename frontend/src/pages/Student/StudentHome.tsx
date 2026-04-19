@@ -134,12 +134,12 @@ const StudentAuth: React.FC = () => {
                 {isSignup && (
                   <>
                     <input
-                      type="text" name="name" placeholder="Full name"
+                      type="text" name="name" placeholder="Full name" title="Full name"
                       className={`w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all ${inputBg}`}
                       value={postInputs.name} onChange={handleChange} required disabled={loading}
                     />
                     <input
-                      type="text" name="branch" placeholder="Branch (e.g., CSE)"
+                      type="text" name="branch" placeholder="Branch (e.g., CSE)" title="Branch"
                       className={`w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all ${inputBg}`}
                       value={postInputs.branch} onChange={handleChange} required disabled={loading}
                     />
@@ -147,13 +147,13 @@ const StudentAuth: React.FC = () => {
                 )}
 
                 <input
-                  type="text" name="roll_num" placeholder="Roll number (any 6 digits)" inputMode="numeric"
+                  type="text" name="roll_num" placeholder="Roll number (any 6 digits)" title="Roll number" inputMode="numeric"
                   className={`w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all ${inputBg}`}
                   value={postInputs.roll_num} onChange={handleChange} required disabled={loading}
                 />
 
                 <input
-                  type="password" name="password" placeholder="Password (use @)"
+                  type="password" name="password" placeholder="Password (use @)" title="Password"
                   className={`w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all ${inputBg}`}
                   value={postInputs.password} onChange={handleChange} required disabled={loading}
                 />
