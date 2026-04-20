@@ -14,13 +14,14 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
-      roll_num: number;
-      role: 'STUDENT';
-      name: string;
-      branch: string;
+      id: number;
+      role: 'TEACHER' | 'STUDENT';
+      name?: string;
+      dept?: string;
+      email?: string;
     };
 
-    req.user2 = decoded;
+    req.user = decoded;
     next();
   } catch (err) {
     res.status(403).json({ message: 'Invalid token', error: err });
