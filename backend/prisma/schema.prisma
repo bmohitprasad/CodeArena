@@ -91,6 +91,16 @@ model Problem {
   codeSubs       ProblemCodeSubmission[]
 }
 
+model GuestProblem {
+  id             Int     @id @default(autoincrement())
+  title          String
+  description    String
+  content        String
+  expectedOutput String?
+  difficulty     String
+  createdAt      DateTime @default(now())
+}
+
 model AssignmentSubmission {
   id           Int      @id @default(autoincrement())
   student_id   Int

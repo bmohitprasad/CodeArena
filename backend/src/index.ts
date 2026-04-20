@@ -8,6 +8,7 @@ import teacherAuthRouter from './routes/teacher/auth';
 import codeRouter from './routes/runCode';
 import execCallbackRouter from "./routes/execCallback";
 import getResultRouter from "./routes/getResult";
+import guestRouter from "./routes/guest";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
@@ -24,6 +25,7 @@ app.use('/api/v1/auth/student', studentAuthRouter);
 app.use('/api/v1/auth/admin', teacherAuthRouter);
 app.use("/api/v1/exec", execCallbackRouter);
 app.use("/api/v1/code", getResultRouter);
+app.use("/api/v1/guest", guestRouter);
 
 
 const server = http.createServer(app);
