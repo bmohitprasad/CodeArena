@@ -108,37 +108,28 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
   }
 });
 
-studentRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
-  // 1. Destructure exactly what the working route does
+
+// Run a public problem
+studentRouter.post('/problem/run', async (req: Request, res: Response): Promise<any>  => {
   const { code, language, input } = req.body;
 
-  // Basic validation to prevent empty triggers
-  if (!code || !language) {
-    return res.status(400).json({ error: "Missing code or language" });
-  }
-
   try {
-    // 2. Call the EXACT same runCode utility used in the working route
-    // This utility handles the GitHub Dispatch and the 'long-polling' 
-    // or store retrieval internally.
     const result = await runCode(language, code, input || '');
 
-    // 3. Match the exact success response format of the working route
-    // This ensures your frontend or Postman receives the identical structure
-    return res.json({ 
-      output: result.output 
-    });
+    const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
 
+    return res.status(isExecutionError ? 422 : 200).json({
+      output: result.output,
+      success: !isExecutionError
+    });
   } catch (err: any) {
-    // Log the error for Render debugging
-    console.error('Public Run System Error:', err);
-    
     return res.status(500).json({ 
       error: 'Execution failed',
-      details: err.message || 'Unknown error'
+      details: err.message || 'Unknown error occurred in code runner'
     });
   }
 });
+
 // Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
@@ -149,10 +140,8 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request,
   try {
     const result = await runCode(language, code, input || '');
 
-    // Determine if the execution failed functionally (e.g., compilation error).
     const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
 
-    // Only mark as completed if execution was successful
     if (!isExecutionError) {
       try {
         await prisma.problemSubmission.create({
