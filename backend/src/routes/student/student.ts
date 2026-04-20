@@ -112,32 +112,24 @@ studentRouter.post('/public/run', async (req: Request, res: Response): Promise<a
   const parsed = publicRunSchema.safeParse(req.body);
   
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
+    return res.status(400).json({ error: 'Invalid payload' });
   }
 
   const { code, language, input } = parsed.data;
 
   try {
-    const result = await runCode(language, code, input || '');
+    const result = await runCode(language, code, input || 'guest-user');
 
-    // Determine if the execution failed functionally (e.g., compilation error).
-    // Ideally, runCode should return a structured object with a 'success' flag.
-    // As a fallback, we check the output for common failure messages.
-    const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
+    const isExecutionError = result.output.includes('Build failed');
 
     return res.status(isExecutionError ? 422 : 200).json({
       output: result.output,
       success: !isExecutionError
     });
   } catch (err: any) {
-    console.error('Code execution system failure:', err);
-    return res.status(500).json({ 
-      error: 'Execution failed',
-      details: err.message || 'Unknown error occurred in code runner'
-    });
+    return res.status(500).json({ error: 'Execution system timed out' });
   }
 });
-
 // Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
