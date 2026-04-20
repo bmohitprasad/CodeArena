@@ -142,27 +142,40 @@ studentRouter.post('/public/run', async (req: Request, res: Response): Promise<a
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
   const assignmentId = parseInt(req.params.assid);
-  const studentId = req.body.studentId;
+  const studentId = (req as any).user.id;
   const { code, language, input } = req.body;
 
   try {
     const result = await runCode(language, code, input || '');
-    res.json({ output: result.output });
-  } catch (err) {
-    return res.status(500).json({ err });
-  }
 
-  try {
-    await prisma.problemSubmission.create({
-      data: {
-        assignmentId,
-        student_id: studentId,
-        isCompleted: true,
-        problemId
+    // Determine if the execution failed functionally (e.g., compilation error).
+    const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
+
+    // Only mark as completed if execution was successful
+    if (!isExecutionError) {
+      try {
+        await prisma.problemSubmission.create({
+          data: {
+            assignmentId,
+            student_id: Number(studentId),
+            isCompleted: true,
+            problemId
+          }
+        });
+      } catch (err) {
+        console.error('problemSubmission mark error:', err);
       }
+    }
+
+    return res.status(isExecutionError ? 422 : 200).json({
+      output: result.output,
+      success: !isExecutionError
     });
-  } catch (err) {
-    console.error('problemSubmission mark error:', err);
+  } catch (err: any) {
+    return res.status(500).json({ 
+      error: 'Execution failed',
+      details: err.message || 'Unknown error occurred in code runner'
+    });
   }
 });
 
