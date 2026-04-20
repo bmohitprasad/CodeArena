@@ -108,7 +108,6 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
   }
 });
 
-// Public route for guests to run code (Unauthenticated)
 studentRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
   const parsed = publicRunSchema.safeParse(req.body);
   
@@ -119,13 +118,23 @@ studentRouter.post('/public/run', async (req: Request, res: Response): Promise<a
   const { code, language, input } = parsed.data;
 
   try {
-    console.log(`[Guest Run] Language: ${language}, Code Length: ${code.length}`);
     const result = await runCode(language, code, input || '');
-    console.log(`[Guest Run] Result received:`, result);
-    return res.json({ output: result.output });
-  } catch (err) {
-    console.error(`[Guest Run] Exception:`, err);
-    return res.status(500).json({ error: 'Execution failed' });
+
+    // Determine if the execution failed functionally (e.g., compilation error).
+    // Ideally, runCode should return a structured object with a 'success' flag.
+    // As a fallback, we check the output for common failure messages.
+    const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
+
+    return res.status(isExecutionError ? 422 : 200).json({
+      output: result.output,
+      success: !isExecutionError
+    });
+  } catch (err: any) {
+    console.error('Code execution system failure:', err);
+    return res.status(500).json({ 
+      error: 'Execution failed',
+      details: err.message || 'Unknown error occurred in code runner'
+    });
   }
 });
 
@@ -138,7 +147,6 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request,
 
   try {
     const result = await runCode(language, code, input || '');
-    // Respond with runner result
     res.json({ output: result.output });
   } catch (err) {
     return res.status(500).json({ err });
@@ -154,7 +162,6 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request,
       }
     });
   } catch (err) {
-    // Non-fatal for run; log only
     console.error('problemSubmission mark error:', err);
   }
 });
