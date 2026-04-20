@@ -9,7 +9,7 @@ import {
 } from "../../hooks";
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 
 type HistoryItem = {
@@ -29,6 +29,7 @@ const LANGUAGE_TEMPLATES: Record<string, string> = {
 
 export default function CodeEditor() {
   const { darkMode } = useTheme();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isGuest = searchParams.get("isGuest") === "true" || localStorage.getItem("isGuest") === "true";
   
@@ -191,6 +192,12 @@ export default function CodeEditor() {
         <div className="flex-1 p-5 gap-5 grid grid-cols-12">
           {/* Problem + History Panel */}
           <section className="col-span-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-3 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition cursor-pointer text-sm font-medium flex items-center gap-1"
+            >
+              ← Back
+            </button>
             <div className={`${cardBg} rounded-xl border border-[#E2E8F0] p-5 top-5 h-fit max-h-[85vh] overflow-auto shadow-sm mb-4`}>
               <h1 className={`text-xl font-semibold ${headingColor} mb-2`}>{problemObj?.title || "Problem"}</h1>
               <div className={`text-sm leading-relaxed prose prose-slate ${darkMode ? "prose-invert" : ""}`}>

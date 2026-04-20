@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { Appbar } from "../../components/Appbar"
 import { Sidebar } from "../../components/Sidebar"
 import { Problems } from "../../hooks"
@@ -13,6 +13,7 @@ type ProblemStatus = { problemId: number; isSubmitted: boolean };
 
 export const StudentProblems = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const assignment_id = parseInt(id || "0");
   const { loading, problems } = Problems({ assignment_id, refresh: true });
   const { darkMode } = useTheme(); // 2. Consume Theme
@@ -106,6 +107,12 @@ export const StudentProblems = () => {
       <div className="flex flex-1">
         <Sidebar user="student" />
         <div className="flex-1 p-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition cursor-pointer text-sm font-medium"
+          >
+            ← Back
+          </button>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
               <h1 className={`text-3xl font-bold ${headingColor}`}>Assignment Problems</h1>

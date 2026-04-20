@@ -168,6 +168,12 @@ export const TeacherAssignments = () => {
         {/* Right Content Area */}
         <main className="flex-1 py-6 pr-6 overflow-y-auto">
           <div className="max-w-4xl mx-auto space-y-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition cursor-pointer text-sm font-medium"
+            >
+              ← Back
+            </button>
             {/* Use loading and assignments here */}
             {loading ? (
               [...Array(4)].map((_, i) => (

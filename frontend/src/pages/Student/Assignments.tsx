@@ -3,11 +3,12 @@ import { Sidebar } from "../../components/Sidebar";
 import { Assignmentcard } from "../../components/AssignmentCard";
 import { AssignmentCardSkeleton } from "../../components/skeleton/AssignmentCardSkeleton";
 import { Assignments } from "../../hooks";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 
 export const StudentAssignments = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const classId = parseInt(id || "0");
   const { loading, assignments } = Assignments({ class_id: classId });
   const { darkMode } = useTheme();
@@ -21,9 +22,17 @@ export const StudentAssignments = () => {
       <div className="flex flex-1">
         <Sidebar user="student" />
         <main className="flex-1 p-6 max-w-6xl mx-auto space-y-6">
-          <h1 className={`text-4xl font-extrabold ${headingColor} mb-4 tracking-tight`}>
-            Assignments
-          </h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition cursor-pointer text-sm font-medium"
+            >
+              ← Back
+            </button>
+            <h1 className={`text-4xl font-extrabold ${headingColor} tracking-tight`}>
+              Assignments
+            </h1>
+          </div>
 
           {loading ? (
             <div className="space-y-4">

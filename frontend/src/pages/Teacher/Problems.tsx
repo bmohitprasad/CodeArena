@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
 
@@ -18,6 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 
 export const TeacherProblems = () => {
   const { darkMode } = useTheme();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const assignment_id = useMemo(() => parseInt(id || "0", 10), [id]);
 
@@ -74,6 +75,12 @@ export const TeacherProblems = () => {
   return (
     <div className={`min-h-screen flex flex-col ${pageBg} transition-colors duration-300`}>
       <Appbar />
+      <button
+        onClick={() => navigate(-1)}
+        className="m-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition cursor-pointer text-sm font-medium"
+      >
+        ← Back
+      </button>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar user="teacher" />
         
