@@ -8,14 +8,13 @@ import bcrypt from 'bcrypt';
 const studentRouter = Router();
 
 const updateStudentSchema = z.object({
-  roll_num: z.number().int(),
   name: z.string().optional(),
   branch: z.string().optional(),
   password: z.string().optional(),
+  email: z.string().email().optional()
 });
 
 const submitSchema = z.object({
-  studentId: z.number().int(),
   assignmentId: z.number().int(),
   problemId: z.number().int(),
   language: z.string().min(1),
@@ -32,10 +31,10 @@ const publicRunSchema = z.object({
 // Join a class
 studentRouter.post('/join', authenticate, async (req: Request, res: Response): Promise<any> => {
   const joinCode = req.body.joinCode;
-  const roll_num = req.body.roll_num;
+  const roll_num = (req as any).user.id;
 
-  if (!roll_num || !joinCode) {
-    return res.status(400).json({ message: 'Missing studentId or joinCode' });
+  if (!joinCode) {
+    return res.status(400).json({ message: 'Missing joinCode' });
   }
 
   try {
@@ -63,8 +62,9 @@ studentRouter.post('/join', authenticate, async (req: Request, res: Response): P
 });
 
 // Get student's classes
+// Note: :id is kept in route for compatibility but ignored; source of truth is the token.
 studentRouter.get('/:id/classes', authenticate, async (req: Request, res: Response): Promise<any>  => {
-  const studentId = Number(req.params.id);
+  const studentId = (req as any).user.id;
 
   try {
     const enrolledClasses = await prisma.enrollment.findMany({
@@ -182,11 +182,11 @@ studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request,
 // Mark assignment submitted
 studentRouter.post("/assignment/:id", authenticate, async (req: Request, res: Response) => {
     const assignmentId = Number(req.params.id);
-    const studentId = Number(req.body.studentId);
+    const studentId = (req as any).user.id;
 
-    if (!assignmentId || !studentId) {
+    if (!assignmentId) {
       return res.status(400).json({
-        error: "assignmentId and studentId are required"
+        error: "assignmentId is required"
       });
     }
 
@@ -222,7 +222,8 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
   const parsed = submitSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
 
-  const { studentId, assignmentId, problemId, language, code, input } = parsed.data;
+  const studentId = (req as any).user.id;
+  const { assignmentId, problemId, language, code, input } = parsed.data;
 
   // Load entities
   const [student, assignment, problem] = await Promise.all([
@@ -251,9 +252,9 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
 studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = Number(req.params.problemId);
   const assignmentId = Number(req.query.assignmentId);
-  const studentId = Number(req.query.studentId);
+  const studentId = (req as any).user.id;
 
-  if (!problemId || !assignmentId || !studentId) {
+  if (!problemId || !assignmentId) {
     return res.status(400).json({ error: 'Missing ids' });
   }
 
@@ -278,9 +279,9 @@ studentRouter.get('/problem/:problemId/latest', authenticate, async (req: Reques
 studentRouter.get('/problem/:problemId/submissions', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = Number(req.params.problemId);
   const assignmentId = Number(req.query.assignmentId);
-  const studentId = Number(req.query.studentId);
+  const studentId = (req as any).user.id;
 
-  if (!problemId || !assignmentId || !studentId) {
+  if (!problemId || !assignmentId) {
     return res.status(400).json({ error: 'Missing ids' });
   }
 
@@ -299,9 +300,9 @@ studentRouter.get('/problem/:problemId/submissions', authenticate, async (req: R
 
 studentRouter.get('/assignment/:assignmentId/problem-status', authenticate, async (req, res) => {
   const assignmentId = Number(req.params.assignmentId);
-  const studentId = Number(req.query.studentId);
-  if (!assignmentId || !studentId) {
-    return res.status(400).json({ error: 'Missing ids' });
+  const studentId = (req as any).user.id;
+  if (!assignmentId) {
+    return res.status(400).json({ error: 'Missing assignmentId' });
   }
 
   // Find all problem IDs in this assignment
@@ -332,18 +333,9 @@ studentRouter.get('/assignment/:assignmentId/problem-status', authenticate, asyn
   return res.json({ status });
 });
 
-// Update student profile
-const updateProfileSchema = z.object({
-  roll_num: z.number().int(),
-  name: z.string().optional(),
-  branch: z.string().optional(),
-  password: z.string().optional(),
-  email: z.string().email().optional()
-});
-
 studentRouter.get('/profile', authenticate, async (req: Request, res: Response): Promise<any> => {
   try {
-    const roll_num = Number((req as any).user.roll_num); 
+    const roll_num = Number((req as any).user.id); 
     const student = await prisma.student.findUnique({
       where: { roll_num },
       select: { roll_num: true, name: true, branch: true, email: true }
@@ -360,12 +352,14 @@ studentRouter.post('/profile/update', authenticate, async (req: Request, res: Re
   const parsed = updateStudentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
 
-  const { roll_num, name, branch, password } = parsed.data;
+  const roll_num = (req as any).user.id;
+  const { name, branch, password, email } = parsed.data;
 
   try {
     const updateData: any = {};
     if (name) updateData.name = name;
     if (branch) updateData.branch = branch;
+    if (email) updateData.email = email;
     if (password?.trim()) updateData.password = await bcrypt.hash(password, 10);
 
     const updatedStudent = await prisma.student.update({
