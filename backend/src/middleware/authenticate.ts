@@ -15,10 +15,10 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
       id: number;
-      role: 'TEACHER';
-      name: string;
-      dept: string;
-      email: string;
+      role: 'TEACHER' | 'STUDENT';
+      name?: string;
+      dept?: string;
+      email?: string;
     };
 
     req.user = decoded;

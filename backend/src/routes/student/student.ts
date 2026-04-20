@@ -10,8 +10,7 @@ const studentRouter = Router();
 const updateStudentSchema = z.object({
   name: z.string().optional(),
   branch: z.string().optional(),
-  password: z.string().optional(),
-  email: z.string().email().optional()
+  password: z.string().optional()
 });
 
 const submitSchema = z.object({
@@ -307,12 +306,13 @@ studentRouter.get('/profile', authenticate, async (req: Request, res: Response):
     const roll_num = Number((req as any).user.id); 
     const student = await prisma.student.findUnique({
       where: { roll_num },
-      select: { roll_num: true, name: true, branch: true, email: true }
+      select: { roll_num: true, name: true, branch: true }
     });
     if (!student) return res.status(404).json({ error: "Student not found" });
     return res.json({ student });
-  } catch (e) {
-    return res.status(500).json({ error: "Internal Server Error" });
+  } catch (e: any) {
+    console.error("Profile fetch error:", e);
+    return res.status(500).json({ error: "Internal Server Error", details: e.message });
   }
 });
 
@@ -322,13 +322,12 @@ studentRouter.post('/profile/update', authenticate, async (req: Request, res: Re
   if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
 
   const roll_num = (req as any).user.id;
-  const { name, branch, password, email } = parsed.data;
+  const { name, branch, password } = parsed.data;
 
   try {
     const updateData: any = {};
     if (name) updateData.name = name;
     if (branch) updateData.branch = branch;
-    if (email) updateData.email = email;
     if (password?.trim()) updateData.password = await bcrypt.hash(password, 10);
 
     const updatedStudent = await prisma.student.update({
@@ -338,8 +337,9 @@ studentRouter.post('/profile/update', authenticate, async (req: Request, res: Re
     });
 
     return res.status(200).json({ message: 'Profile updated', student: updatedStudent });
-  } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
+  } catch (err: any) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ error: 'Update failed', details: err.message });
   }
 });
 
