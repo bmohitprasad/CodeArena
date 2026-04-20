@@ -1,7 +1,22 @@
-// Prisma configuration for Prisma v7+
-// Database URL is now configured via PrismaClient constructor in src/prisma/prisma.ts
-import { defineConfig } from '@prisma/config'
+// Prisma configuration for v6.19.3+
+import dotenv from 'dotenv'
 
-export default defineConfig({
-  // engine: 'classic',  // Not needed in Prisma v7
-})
+// Load environment variables
+dotenv.config()
+
+// Validate DATABASE_URL is set
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL environment variable is not defined. Please set it in your .env file.");
+}
+
+// Export configuration object for Prisma
+export const config = {
+  datasources: {
+    db: {
+      url: databaseUrl,
+    },
+  },
+};
+
+export default config;
