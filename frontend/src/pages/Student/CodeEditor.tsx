@@ -4,11 +4,12 @@ import {
   useLatestSubmission,
   useRunCode,
   useSubmitCode,
-  useSubmissionHistory
+  useSubmissionHistory,
+  useSingleGuestProblem
 } from "../../hooks";
 import { Appbar } from "../../components/Appbar";
 import { Sidebar } from "../../components/Sidebar";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 
 type HistoryItem = {
@@ -28,50 +29,76 @@ const LANGUAGE_TEMPLATES: Record<string, string> = {
 
 export default function CodeEditor() {
   const { darkMode } = useTheme();
+  const [searchParams] = useSearchParams();
+  const isGuest = searchParams.get("isGuest") === "true" || localStorage.getItem("isGuest") === "true";
+  
   const studentId = useMemo(() => Number(localStorage.getItem("studentId") || 0), []);
   const { id } = useParams<{ id: string }>();
   const problemId = useMemo(() => parseInt(id || "0", 10), [id]);
 
+  // For regular problems
   const singleProblem = SingleProblem({ problem_id: problemId });
-  const problemObj = (singleProblem.problem as any) || {};
+  const regularProblemObj = (singleProblem.problem as any) || {};
+
+  // For guest problems
+  const guestProblem = useSingleGuestProblem(isGuest ? problemId : 0);
+  const guestProblemObj = guestProblem.problem || {};
+
+  // Use the appropriate problem object
+  const problemObj = isGuest ? guestProblemObj : regularProblemObj;
 
   const assignmentId = useMemo(() => {
-  const p = problemObj || {};
-  return Number(p.assignmentId ?? p.assignment_id ?? 0);
-}, [problemObj]);
+    const p = problemObj || {};
+    return Number(p.assignmentId ?? p.assignment_id ?? 1); // Default to 1 for guests
+  }, [problemObj]);
 
   const [code, setCode] = useState("print('hello world')");
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState("python");
   const [wrap, setWrap] = useState(true);
-  // const [editorRows, setEditorRows] = useState(10);
   const [previewId, setPreviewId] = useState<number | null>(null);
+  const [guestHistory, setGuestHistory] = useState<HistoryItem[]>([]);
 
   const { runCode, output, loading, error } = useRunCode();
   const { submitCode, submitting, submitError, submitOk } = useSubmitCode();
 
-  const idsReady =
-    !!studentId && !!assignmentId && !!problemId && !Number.isNaN(assignmentId) && !Number.isNaN(problemId);
+  const idsReady = isGuest
+    ? !!problemId && !Number.isNaN(problemId)
+    : !!studentId && !!assignmentId && !!problemId && !Number.isNaN(assignmentId) && !Number.isNaN(problemId);
 
   const { loadingLatest, latest } = useLatestSubmission(
-    idsReady ? studentId : 0,
-    idsReady ? assignmentId : 0,
-    idsReady ? problemId : 0
+    !isGuest && idsReady ? studentId : 0,
+    !isGuest && idsReady ? assignmentId : 0,
+    !isGuest && idsReady ? problemId : 0
   );
 
   const { loadingHistory, history, historyError, refreshHistory } = useSubmissionHistory(
-    idsReady ? studentId : 0,
-    idsReady ? assignmentId : 0,
-    idsReady ? problemId : 0
+    !isGuest && idsReady ? studentId : 0,
+    !isGuest && idsReady ? assignmentId : 0,
+    !isGuest && idsReady ? problemId : 0
   );
 
+  // Load guest history from localStorage
   useEffect(() => {
-    if (!loadingLatest && latest && idsReady) {
+    if (isGuest) {
+      const saved = localStorage.getItem(`guest_problem_${problemId}_history`);
+      if (saved) {
+        try {
+          setGuestHistory(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse guest history:', e);
+        }
+      }
+    }
+  }, [isGuest, problemId]);
+
+  useEffect(() => {
+    if (!loadingLatest && latest && idsReady && !isGuest) {
       setLanguage(latest.language || "python");
       setCode(latest.code || LANGUAGE_TEMPLATES["python"]);
       setInput(latest.stdin || "");
     }
-  }, [loadingLatest, latest, idsReady]);
+  }, [loadingLatest, latest, idsReady, isGuest]);
 
   const expected: string = problemObj?.expectedOutput || "";
 
@@ -98,10 +125,30 @@ export default function CodeEditor() {
 
   const matches = trimLinesRight(lastRunOutput) === trimLinesRight(expected);
 
-  const handleRun = async () => await runCode(code, language, input);
+  const handleRun = async () => {
+    await runCode(code, language, input);
+    // For guest users, save to history
+    if (isGuest && lastRunOutput !== undefined) {
+      const newEntry: HistoryItem = {
+        id: Date.now(),
+        language,
+        code,
+        stdin: input,
+        createdAt: new Date().toISOString()
+      };
+      const updated = [newEntry, ...guestHistory].slice(0, 50); // Keep last 50
+      setGuestHistory(updated);
+      localStorage.setItem(`guest_problem_${problemId}_history`, JSON.stringify(updated));
+    }
+  };
 
   const handleSubmit = async () => {
     if (!matches) return;
+    if (isGuest) {
+      // For guests, just show success message
+      alert("Great job! Your solution matches the expected output!");
+      return;
+    }
     await submitCode({ studentId, assignmentId, problemId, language, code, input });
     refreshHistory?.();
   };
@@ -134,7 +181,7 @@ export default function CodeEditor() {
     }
   };
 
-  const initialHydrating = !assignmentId || loadingLatest;
+  const initialHydrating = isGuest ? guestProblem.loading : (!assignmentId || loadingLatest);
 
   return (
     <div className={`min-h-screen flex flex-col ${pageBg} transition-colors duration-300`}>
@@ -238,103 +285,192 @@ export default function CodeEditor() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <h3 className={`text-sm font-bold uppercase tracking-wider ${subTextColor}`}>
-                    Submission History
+                    {isGuest ? "Run History" : "Submission History"}
                   </h3>
-                  {history && history.length > 0 && (
+                  {(isGuest ? guestHistory : history)?.length > 0 && (
                     <span className="bg-blue-500/10 text-blue-500 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
-                      {history.length}
+                      {(isGuest ? guestHistory : history)?.length}
                     </span>
                   )}
                 </div>
                 <button
                   className="text-xs text-blue-500 hover:text-blue-400 font-semibold transition"
-                  onClick={() => refreshHistory?.()}
+                  onClick={() => {
+                    if (isGuest) {
+                      // Reload guest history from localStorage
+                      const saved = localStorage.getItem(`guest_problem_${problemId}_history`);
+                      if (saved) {
+                        try {
+                          setGuestHistory(JSON.parse(saved));
+                        } catch (e) {
+                          console.error('Failed to parse guest history:', e);
+                        }
+                      }
+                    } else {
+                      refreshHistory?.();
+                    }
+                  }}
                 >
                   Refresh
                 </button>
               </div>
 
-              {loadingHistory ? (
-                <div className="py-4 flex flex-col items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-xs text-slate-500">Retrieving logs...</p>
-                </div>
-              ) : historyError ? (
-                <div className="py-4 text-center text-xs text-red-400">Could not load history.</div>
-              ) : (history?.length ?? 0) === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500 italic">No submissions yet.</div>
-              ) : (
-                <ul className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                  {history!.map((h: HistoryItem) => (
-                    <li key={h.id} className="group">
-                      <div
-                        className={`p-3 rounded-xl border transition-all ${
-                          h.id === previewId 
-                            ? "border-blue-500 bg-blue-500/5 shadow-md" 
-                            : `${darkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200"} hover:border-slate-500`
-                        } flex items-center justify-between gap-4`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-[11px] mb-1">
-                            <span className={`font-bold uppercase ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
-                              {h.language}
-                            </span>
-                            <span className="text-slate-500">•</span>
-                            <span className="text-slate-500 truncate">
-                              {new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+              {isGuest ? (
+                guestHistory.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-500 italic">No runs yet.</div>
+                ) : (
+                  <ul className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                    {guestHistory.map((h: HistoryItem) => (
+                      <li key={h.id} className="group">
+                        <div
+                          className={`p-3 rounded-xl border transition-all ${
+                            h.id === previewId 
+                              ? "border-blue-500 bg-blue-500/5 shadow-md" 
+                              : `${darkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200"} hover:border-slate-500`
+                          } flex items-center justify-between gap-4`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 text-[11px] mb-1">
+                              <span className={`font-bold uppercase ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
+                                {h.language}
+                              </span>
+                              <span className="text-slate-500">•</span>
+                              <span className="text-slate-500 truncate">
+                                {new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className={`text-xs font-mono line-clamp-1 opacity-60 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
+                              {h.code.slice(0, 60).replace(/\n/g, " ")}...
+                            </div>
                           </div>
-                          <div className={`text-xs font-mono line-clamp-1 opacity-60 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
-                            {h.code.slice(0, 60).replace(/\n/g, " ")}...
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              className={`text-[10px] font-bold px-2 py-1 rounded transition ${
+                                h.id === previewId 
+                                  ? "bg-blue-600 text-white" 
+                                  : `${darkMode ? "bg-slate-800 text-slate-300" : "bg-white text-slate-600"} border border-slate-700/50`
+                              }`}
+                              onClick={() => setPreviewId((prev) => (prev === h.id ? null : h.id))}
+                            >
+                              {h.id === previewId ? "HIDE" : "PREVIEW"}
+                            </button>
+                            <button
+                              className="text-[10px] font-bold px-2 py-1 bg-emerald-600/10 text-emerald-500 border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-white transition"
+                              onClick={() => {
+                                setLanguage(h.language || "python");
+                                setCode(h.code || "");
+                                setInput(h.stdin || "");
+                              }}
+                            >
+                              LOAD
+                            </button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            className={`text-[10px] font-bold px-2 py-1 rounded transition ${
-                              h.id === previewId 
-                                ? "bg-blue-600 text-white" 
-                                : `${darkMode ? "bg-slate-800 text-slate-300" : "bg-white text-slate-600"} border border-slate-700/50`
-                            }`}
-                            onClick={() => setPreviewId((prev) => (prev === h.id ? null : h.id))}
-                          >
-                            {h.id === previewId ? "HIDE" : "PREVIEW"}
-                          </button>
-                          <button
-                            className="text-[10px] font-bold px-2 py-1 bg-emerald-600/10 text-emerald-500 border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-white transition"
-                            onClick={() => {
-                              setLanguage(h.language || "python");
-                              setCode(h.code || "");
-                              setInput(h.stdin || "");
-                            }}
-                          >
-                            LOAD
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* IMPROVED PREVIEW BOX */}
-                      {previewId === h.id && (
-                        <div className={`mt-2 p-3 rounded-xl border animate-in zoom-in-95 duration-200 ${
-                          darkMode ? "bg-slate-900 border-slate-700" : "bg-white border-slate-300 shadow-inner"
-                        }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">Snapshot Preview</span>
-                            {h.stdin && <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 rounded">HAS STDIN</span>}
-                          </div>
-                          <pre className={`text-[11px] font-mono p-2 rounded-lg max-h-32 overflow-auto ${
-                            darkMode ? "bg-black/40 text-blue-100" : "bg-slate-100 text-slate-800"
+                        {previewId === h.id && (
+                          <div className={`mt-2 p-3 rounded-xl border animate-in zoom-in-95 duration-200 ${
+                            darkMode ? "bg-slate-900 border-slate-700" : "bg-white border-slate-300 shadow-inner"
                           }`}>
-                            {h.code}
-                          </pre>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Run Snapshot</span>
+                              {h.stdin && <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 rounded">HAS STDIN</span>}
+                            </div>
+                            <pre className={`text-[11px] font-mono p-2 rounded-lg max-h-32 overflow-auto ${
+                              darkMode ? "bg-black/40 text-blue-100" : "bg-slate-100 text-slate-800"
+                            }`}>
+                              {h.code}
+                            </pre>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : (
+                <>
+                  {loadingHistory ? (
+                    <div className="py-4 flex flex-col items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-xs text-slate-500">Retrieving logs...</p>
+                    </div>
+                  ) : historyError ? (
+                    <div className="py-4 text-center text-xs text-red-400">Could not load history.</div>
+                  ) : (history?.length ?? 0) === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-500 italic">No submissions yet.</div>
+                  ) : (
+                    <ul className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                      {history!.map((h: HistoryItem) => (
+                        <li key={h.id} className="group">
+                          <div
+                            className={`p-3 rounded-xl border transition-all ${
+                              h.id === previewId 
+                                ? "border-blue-500 bg-blue-500/5 shadow-md" 
+                                : `${darkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200"} hover:border-slate-500`
+                            } flex items-center justify-between gap-4`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 text-[11px] mb-1">
+                                <span className={`font-bold uppercase ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
+                                  {h.language}
+                                </span>
+                                <span className="text-slate-500">•</span>
+                                <span className="text-slate-500 truncate">
+                                  {new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className={`text-xs font-mono line-clamp-1 opacity-60 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
+                                {h.code.slice(0, 60).replace(/\n/g, " ")}...
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                className={`text-[10px] font-bold px-2 py-1 rounded transition ${
+                                  h.id === previewId 
+                                    ? "bg-blue-600 text-white" 
+                                    : `${darkMode ? "bg-slate-800 text-slate-300" : "bg-white text-slate-600"} border border-slate-700/50`
+                                }`}
+                                onClick={() => setPreviewId((prev) => (prev === h.id ? null : h.id))}
+                              >
+                                {h.id === previewId ? "HIDE" : "PREVIEW"}
+                              </button>
+                              <button
+                                className="text-[10px] font-bold px-2 py-1 bg-emerald-600/10 text-emerald-500 border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-white transition"
+                                onClick={() => {
+                                  setLanguage(h.language || "python");
+                                  setCode(h.code || "");
+                                  setInput(h.stdin || "");
+                                }}
+                              >
+                                LOAD
+                              </button>
+                            </div>
+                          </div>
+
+                          {previewId === h.id && (
+                            <div className={`mt-2 p-3 rounded-xl border animate-in zoom-in-95 duration-200 ${
+                              darkMode ? "bg-slate-900 border-slate-700" : "bg-white border-slate-300 shadow-inner"
+                            }`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Snapshot Preview</span>
+                                {h.stdin && <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 rounded">HAS STDIN</span>}
+                              </div>
+                              <pre className={`text-[11px] font-mono p-2 rounded-lg max-h-32 overflow-auto ${
+                                darkMode ? "bg-black/40 text-blue-100" : "bg-slate-100 text-slate-800"
+                              }`}>
+                                {h.code}
+                              </pre>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
-        </section>
-              </section>
+            </section>
+          </section>
 
           {/* Editor + Output */}
           <div className="col-span-12 lg:col-span-8 space-y-4">

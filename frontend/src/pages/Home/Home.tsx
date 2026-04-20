@@ -1,7 +1,8 @@
 import { Appbar } from "../../components/Appbar";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
+import { BACKEND_URL } from "../../config";
 
 interface GuestProblem {
   id: number;
@@ -10,31 +11,42 @@ interface GuestProblem {
   difficulty: string;
 }
 
-const GUEST_PROBLEMS: GuestProblem[] = [
-  {
-    id: 1,
-    title: "Hello World",
-    description: "Write a program that prints 'Hello World'",
-    difficulty: "Beginner"
-  },
-  {
-    id: 2,
-    title: "Sum of Two Numbers",
-    description: "Read two numbers and print their sum",
-    difficulty: "Beginner"
-  },
-  {
-    id: 3,
-    title: "Factorial Calculation",
-    description: "Calculate factorial of a given number",
-    difficulty: "Intermediate"
-  }
-];
-
 export default function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "problems">("overview");
-  const [selectedProblem, setSelectedProblem] = useState<GuestProblem | null>(null);
+  const [guestProblems, setGuestProblems] = useState<GuestProblem[]>([]);
+  const [loadingProblems, setLoadingProblems] = useState(false);
+
+  // Fetch guest problems from API
+  useEffect(() => {
+    const fetchGuestProblems = async () => {
+      setLoadingProblems(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/v1/guest`);
+        if (!response.ok) throw new Error('Failed to fetch guest problems');
+        const problems = await response.json();
+        setGuestProblems(problems);
+      } catch (error) {
+        console.error('Error fetching guest problems:', error);
+      } finally {
+        setLoadingProblems(false);
+      }
+    };
+
+    fetchGuestProblems();
+  }, []);
+
+  const handleGuestProblemClick = (problem: GuestProblem) => {
+    // Provided JWT token for authorization
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODg4ODg4LCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc3NjY4MjIxOX0._2n0FXwSTzu4olFH0Bk49go4l6iYadbn8CQweRyxwlM";
+    localStorage.setItem("token", token);
+    localStorage.setItem("role", "STUDENT");
+    localStorage.setItem("isGuest", "true");
+    localStorage.setItem("guestProblemId", problem.id.toString());
+
+    // Pass assignmentId as a query param so CodeEditor can fetch history and run code
+    navigate(`/student/assignment/problem/${problem.id}?assignmentId=1&isGuest=true`);
+  };
 
   const { darkMode } = useTheme();
 
@@ -57,7 +69,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex gap-8">
             <button
-              onClick={() => { setActiveTab("overview"); setSelectedProblem(null); }}
+              onClick={() => { setActiveTab("overview"); }}
               className={`py-4 px-2 font-semibold text-sm transition-colors border-b-2 ${
                 activeTab === "overview"
                   ? "border-[#3B82F6] text-[#3B82F6]"
@@ -176,12 +188,20 @@ export default function Home() {
       {/* Problems Tab */}
       {activeTab === "problems" && (
         <div className="py-12 px-6">
-          {!selectedProblem ? (
-            <div className="max-w-6xl mx-auto">
-              <h2 className={`text-3xl font-bold ${headingColor} mb-8`}>Try Sample Problems</h2>
+          <div className="max-w-6xl mx-auto">
+            <h2 className={`text-3xl font-bold ${headingColor} mb-8`}>Try Sample Problems</h2>
+            {loadingProblems ? (
+              <div className={`text-center py-12 ${subTextColor}`}>
+                <p>Loading problems...</p>
+              </div>
+            ) : guestProblems.length === 0 ? (
+              <div className={`text-center py-12 ${subTextColor}`}>
+                <p>No problems available at the moment</p>
+              </div>
+            ) : (
               <div className="grid md:grid-cols-3 gap-6">
-                {GUEST_PROBLEMS.map((p) => (
-                  <div key={p.id} onClick={() => setSelectedProblem(p)} className={`${cardBg} rounded-xl p-6 border hover:shadow-lg transition cursor-pointer`}>
+                {guestProblems.map((p) => (
+                  <div key={p.id} onClick={() => handleGuestProblemClick(p)} className={`${cardBg} rounded-xl p-6 border hover:shadow-lg transition cursor-pointer`}>
                     <div className="flex justify-between items-start mb-4">
                       <h3 className={`text-xl font-semibold ${headingColor}`}>{p.title}</h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.difficulty === 'Beginner' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
@@ -192,33 +212,8 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="max-w-7xl mx-auto">
-              <button onClick={() => setSelectedProblem(null)} className="mb-6 text-[#3B82F6] font-semibold hover:underline">← Back to Problems</button>
-              <div className="grid grid-cols-12 gap-6">
-                <div className={`${cardBg} col-span-12 lg:col-span-4 rounded-xl border p-6`}>
-                   <h1 className={`text-2xl font-bold ${headingColor} mb-4`}>{selectedProblem.title}</h1>
-                   <p className={subTextColor}>{selectedProblem.description}</p>
-                   {/* Difficulty, Input, Output sections using subTextColor and darkMode-friendly code blocks */}
-                   <pre className={`${darkMode ? "bg-slate-900 text-blue-300" : "bg-slate-100 text-slate-800"} p-3 rounded mt-4 text-xs`}>
-                      {selectedProblem.id === 2 ? "Input: 5, 10\nOutput: 15" : "Expected Output: ..."}
-                   </pre>
-                </div>
-                <div className={`${cardBg} col-span-12 lg:col-span-8 rounded-xl border p-6`}>
-                   <textarea 
-                      title="Code Editor"
-                      placeholder="Write your code here..."
-                      className={`w-full h-64 p-4 rounded-lg font-mono text-sm ${darkMode ? "bg-slate-900 text-white border-slate-700" : "bg-slate-50 text-slate-900 border-slate-200"}`} 
-                   />
-                   <div className="mt-4 flex gap-4">
-                      <button className="flex-1 py-2 bg-[#3B82F6] text-white rounded-lg font-bold">Run Code</button>
-                      <button className={`flex-1 py-2 border ${darkMode ? "border-slate-700" : "border-slate-200"} rounded-lg`}>Reset</button>
-                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

@@ -37,6 +37,7 @@ function App() {
           <Route path="/student/class/:id" element={<StudentAssignments/>}/>
           <Route path="/student/class/assignment/:id" element={<StudentProblems/>}/>
           <Route path="/student/assignment/problem/:id" element={<CodeEditor/>}/>
+          <Route path="/student/assignment/:assid/problem/:id" element={<CodeEditor/>}/>
           <Route path="/student/profile" element={<StudentProfile/>}/>
 
           <Route path="/guest" element={<Home/>}/>

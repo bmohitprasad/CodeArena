@@ -443,3 +443,28 @@ export const useSubmissionHistory = (studentId: number, assignmentId: number, pr
   return { loadingHistory, history, historyError, refreshHistory: fetchHistory };
 };
 
+export const useSingleGuestProblem = (problemId: number) => {
+  const [loading, setLoading] = useState(true);
+  const [problem, setProblem] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProblem = async () => {
+      if (!problemId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get(`${BACKEND_URL}/api/v1/guest/${problemId}`);
+        setProblem(res.data);
+      } catch (e: any) {
+        setError(e?.response?.data?.message || e?.message || 'Failed to load guest problem');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProblem();
+  }, [problemId]);
+
+  return { loading, problem, error };
+};
+

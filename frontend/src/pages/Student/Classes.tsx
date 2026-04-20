@@ -50,7 +50,7 @@ export const StudentClasses = () => {
                     <div className="max-w-xl">
                         <div className="flex gap-2 items-start">
                             <Input
-                                placeholder="Enter Class Code (e.g. 1AYLBP)"
+                                placeholder="Enter Class Code (e.g. BOCEK6)"
                                 title="Class Code"
                                 value={joinCode}
                                 onChange={(e) => setJoinCode(e.target.value)}
@@ -65,7 +65,7 @@ export const StudentClasses = () => {
                             </Button>
                         </div>
                         <p className={`mt-2 text-sm font-medium ${subTextColor} opacity-80`}>
-                            Pro-tip: Use code <span className="text-blue-500 font-bold">1AYLBP</span> to test the demo.
+                            Pro-tip: Use code <span className="text-blue-500 font-bold">BOCEK6</span> to test the demo.
                         </p>
                     </div>
 
