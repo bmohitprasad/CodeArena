@@ -21,6 +21,8 @@ export const Appbar = () => {
         navigate("/guest");
     };
 
+    // const role = localStorage.getItem("userRole")?.toLowerCase();
+ 
     const handleBrandClick = () => {
         if (isLoggedIn) {
             if (user === "student" || localStorage.getItem("jwt")) navigate("/student/classes");

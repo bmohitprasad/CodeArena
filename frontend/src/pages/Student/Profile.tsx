@@ -18,38 +18,62 @@ export default function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
 
   const token = localStorage.getItem("jwt");
+  const studentId = localStorage.getItem("studentId");
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token || !studentId) {
+        setMessage({ type: "error", text: "Not authenticated. Please login." });
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await axios.get(`${BACKEND_URL}/api/v1/student/profile`, {
           headers: { Authorization: token }
         });
-        setProfile(res.data.student);
-        setFormData(res.data.student);
-      } catch (e) {
-        setMessage({ type: "error", text: "Failed to load profile" });
+        if (res.data && res.data.student) {
+          setProfile(res.data.student);
+          setFormData(res.data.student);
+        } else {
+          setMessage({ type: "error", text: "No profile data received" });
+        }
+      } catch (e: any) {
+        console.error("Profile fetch error:", e);
+        setMessage({ type: "error", text: e.response?.data?.error || "Failed to load profile" });
       } finally {
         setLoading(false);
       }
     };
     fetchProfile();
-  }, [token]);
+  }, [token, studentId]);
 
   const handleSave = async () => {
     setSubmitting(true);
     try {
+      if (!profile) {
+        setMessage({ type: "error", text: "Profile not loaded" });
+        return;
+      }
+
       const res = await axios.post(`${BACKEND_URL}/api/v1/student/profile/update`, {
         roll_num: profile.roll_num,
         name: formData.name,
         branch: formData.branch,
         password: formData.password || undefined
-      }, { headers: { Authorization: token } });
+      }, { 
+        headers: { Authorization: token } 
+      });
 
-      setProfile(res.data.student);
-      setEditMode(false);
-      setMessage({ type: "success", text: "Profile updated!" });
+      if (res.data && res.data.student) {
+        setProfile(res.data.student);
+        setFormData(res.data.student);
+        setEditMode(false);
+        setMessage({ type: "success", text: "Profile updated successfully!" });
+        setTimeout(() => setMessage(null), 3000);
+      }
     } catch (e: any) {
+      console.error("Update error:", e);
       setMessage({ type: "error", text: e.response?.data?.error || "Update failed" });
     } finally {
       setSubmitting(false);
@@ -108,13 +132,28 @@ export default function ProfilePage() {
                 />
               </div>
 
+              {editMode && (
+                <div className="grid gap-4">
+                  <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-500">New Password (Optional)</label>
+                  <input
+                    id="password"
+                    type="password"
+                    title="Password"
+                    placeholder="Leave blank to keep current password"
+                    className={`p-3 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
+                    value={formData.password || ""} 
+                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                  />
+                </div>
+              )}
+
               <div className="flex gap-4 pt-4">
                 {!editMode ? (
-                  <button onClick={() => setEditMode(true)} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold">Edit Profile</button>
+                  <button onClick={() => setEditMode(true)} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Edit Profile</button>
                 ) : (
                   <>
-                    <button onClick={handleSave} disabled={submitting} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold flex-1">{submitting ? "Saving..." : "Save"}</button>
-                    <button onClick={() => setEditMode(false)} className={`px-8 py-3 rounded-xl font-bold border ${darkMode ? 'text-white border-slate-700' : 'text-slate-700 border-slate-200'}`}>Cancel</button>
+                    <button onClick={handleSave} disabled={submitting} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex-1">{submitting ? "Saving..." : "Save"}</button>
+                    <button onClick={() => { setEditMode(false); setFormData(profile); }} className={`px-8 py-3 rounded-xl font-bold border ${darkMode ? 'text-white border-slate-700' : 'text-slate-700 border-slate-200'}`}>Cancel</button>
                   </>
                 )}
               </div>

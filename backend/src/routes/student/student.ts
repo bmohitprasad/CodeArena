@@ -27,7 +27,30 @@ const publicRunSchema = z.object({
   input: z.string().optional()
 });
 
-// Join a class
+studentRouter.get('/public/problems', async (req: Request, res: Response) => {
+  try {
+    const problems = await prisma.problem.findMany({
+      where: { assignmentId: 1 },
+      select: { id: true, title: true, description: true, difficulty: true }
+    });
+    res.json(problems);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch guest problems' });
+  }
+});
+
+studentRouter.post('/public/run', async (req: Request, res: Response): Promise<any> => {
+  const parsed = publicRunSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
+  const { code, language, input } = parsed.data;
+  try {
+    const result = await runCode(language, code, input || '');
+    return res.json({ output: result.output, success: !result.output.includes('Build failed') });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Execution failed', details: err.message });
+  }
+});
+
 studentRouter.post('/join', authenticate, async (req: Request, res: Response): Promise<any> => {
   const joinCode = req.body.joinCode;
   const roll_num = (req as any).user.id;

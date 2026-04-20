@@ -31,14 +31,26 @@ export default function TeacherProfilePage() {
   const loadProfile = async () => {
     try {
       const token = localStorage.getItem("jwt");
+      if (!token) {
+        setMessage({ type: "error", text: "Not authenticated. Please login." });
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(`${BACKEND_URL}/api/v1/admin/profile`, {
         headers: { Authorization: token }
       });
-      const data = response.data.teacher;
-      setProfile(data);
-      setFormData(data);
-    } catch (error) {
-      setMessage({ type: "error", text: "Failed to fetch instructor data" });
+      
+      if (response.data && response.data.teacher) {
+        const data = response.data.teacher;
+        setProfile(data);
+        setFormData(data);
+      } else {
+        setMessage({ type: "error", text: "No profile data received" });
+      }
+    } catch (error: any) {
+      console.error("Profile fetch error:", error);
+      setMessage({ type: "error", text: error.response?.data?.error || "Failed to fetch instructor data" });
     } finally {
       setLoading(false);
     }
@@ -48,26 +60,35 @@ export default function TeacherProfilePage() {
     setSubmitting(true);
     try {
       const token = localStorage.getItem("jwt");
-      const teacherId = localStorage.getItem("teacherId");
-      
+      const teacherId = profile?.id;
+
+      if (!token || !teacherId) {
+        setMessage({ type: "error", text: "Missing authentication or profile data" });
+        return;
+      }
+
       const response = await axios.post(
         `${BACKEND_URL}/api/v1/admin/profile/update`,
         {
           id: Number(teacherId),
           name: formData.name,
-          dept: formData.department,
+          dept: formData.dept,
+          email: formData.email,
           password: formData.password || undefined
         },
         { headers: { Authorization: token } }
       );
 
-      setProfile(response.data.teacher);
-      setFormData(response.data.teacher);
-      setEditMode(false);
-      setMessage({ type: "success", text: "Instructor profile updated!" });
-      setTimeout(() => setMessage(null), 3000);
+      if (response.data && response.data.teacher) {
+        setProfile(response.data.teacher);
+        setFormData(response.data.teacher);
+        setEditMode(false);
+        setMessage({ type: "success", text: "Instructor profile updated successfully!" });
+        setTimeout(() => setMessage(null), 3000);
+      }
     } catch (error: any) {
-      setMessage({ type: "error", text: error.response?.data?.message || "Update failed" });
+      console.error("Update error:", error);
+      setMessage({ type: "error", text: error.response?.data?.error || error.response?.data?.message || "Update failed" });
     } finally {
       setSubmitting(false);
     }
@@ -115,20 +136,32 @@ export default function TeacherProfilePage() {
               </div>
 
               <div>
+                <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Email</label>
+                <input id="email" name="email" type="email" title="Email" placeholder="Enter your email" value={formData.email || ""} onChange={(e) => setFormData({...formData, email: e.target.value})} disabled={!editMode} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
+              </div>
+
+              <div>
                 <label htmlFor="department" className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Department</label>
-                <input id="department" name="department" title="Department" placeholder="Enter your department" value={formData.department || ""} onChange={(e) => setFormData({...formData, department: e.target.value})} disabled={!editMode} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
+                <input id="department" name="dept" title="Department" placeholder="Enter your department" value={formData.dept || ""} onChange={(e) => setFormData({...formData, dept: e.target.value})} disabled={!editMode} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
               </div>
 
               {editMode && (
-                <div className="pt-4 flex gap-3">
-                  <button onClick={handleSave} disabled={submitting} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">
-                    {submitting ? "Applying Changes..." : "Confirm Update"}
-                  </button>
-                  <button onClick={() => {setEditMode(false); setFormData(profile);}} className={`flex-1 py-3 rounded-xl font-bold border ${darkMode ? 'border-slate-700 text-white' : 'border-slate-200'}`}>
-                    Cancel
-                  </button>
+                <div>
+                  <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">New Password (Optional)</label>
+                  <input id="password" name="password" type="password" title="Password" placeholder="Leave blank to keep current password" value={formData.password || ""} onChange={(e) => setFormData({...formData, password: e.target.value})} className={`w-full px-4 py-3 rounded-xl border outline-none ${inputStyle}`} />
                 </div>
               )}
+
+              <div className="flex gap-4 pt-4">
+                {!editMode ? (
+                  <button onClick={() => setEditMode(true)} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Edit Profile</button>
+                ) : (
+                  <>
+                    <button onClick={handleSave} disabled={submitting} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition flex-1">{submitting ? "Saving..." : "Save"}</button>
+                    <button onClick={() => { setEditMode(false); setFormData(profile); }} className={`px-8 py-3 rounded-xl font-bold border ${darkMode ? 'text-white border-slate-700' : 'text-slate-700 border-slate-200'}`}>Cancel</button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

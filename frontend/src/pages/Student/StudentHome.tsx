@@ -45,6 +45,7 @@ const StudentAuth: React.FC = () => {
       const response = await axios.post(`${BACKEND_URL}/api/v1/auth/student${endpoint}`, payload);
       localStorage.setItem('jwt', response.data.jwt);
       localStorage.setItem('studentId', String(response.data.roll_num));
+      localStorage.setItem('userRole', 'student');
       navigate('/student/classes');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Something went wrong');

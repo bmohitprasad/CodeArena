@@ -54,6 +54,8 @@ const TeacherAuth: React.FC = () => {
 
       localStorage.setItem('jwt', token);
       localStorage.setItem('teacherId', String(teacherId));
+      localStorage.setItem('userRole', 'teacher');
+
 
       navigate('/teacher/classes');
     } catch (err: any) {
