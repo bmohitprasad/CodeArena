@@ -109,27 +109,6 @@ studentRouter.get('/assignment/problem/:id', authenticate, async (req: Request, 
 });
 
 
-// Run a public problem
-studentRouter.post('/problem/run', async (req: Request, res: Response): Promise<any>  => {
-  const { code, language, input } = req.body;
-
-  try {
-    const result = await runCode(language, code, input || '');
-
-    const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
-
-    return res.status(isExecutionError ? 422 : 200).json({
-      output: result.output,
-      success: !isExecutionError
-    });
-  } catch (err: any) {
-    return res.status(500).json({ 
-      error: 'Execution failed',
-      details: err.message || 'Unknown error occurred in code runner'
-    });
-  }
-});
-
 // Run a problem
 studentRouter.post('/:assid/problem/:id/run', authenticate, async (req: Request, res: Response): Promise<any>  => {
   const problemId = parseInt(req.params.id);
