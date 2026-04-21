@@ -3,7 +3,6 @@ import { prisma } from '../prisma/prisma';
 
 const guestRouter = Router();
 
-// Guest problems data
 const GUEST_PROBLEMS = [
   {
     title: "Hello World",
@@ -28,7 +27,6 @@ const GUEST_PROBLEMS = [
   }
 ];
 
-// Seed guest problems (create if they don't exist)
 guestRouter.post('/seed', async (req: Request, res: Response): Promise<any> => {
   try {
     const count = await prisma.guestProblem.count();
@@ -37,7 +35,6 @@ guestRouter.post('/seed', async (req: Request, res: Response): Promise<any> => {
       return res.status(200).json({ message: 'Guest problems already seeded', count });
     }
 
-    // Create guest problems
     const created = await prisma.guestProblem.createMany({
       data: GUEST_PROBLEMS,
       skipDuplicates: true,
@@ -50,12 +47,10 @@ guestRouter.post('/seed', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
-// Get all guest problems
 guestRouter.get('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const problems = await prisma.guestProblem.findMany();
     
-    // If no problems exist, seed them
     if (problems.length === 0) {
       await prisma.guestProblem.createMany({
         data: GUEST_PROBLEMS,
@@ -71,7 +66,6 @@ guestRouter.get('/', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
-// Get a single guest problem
 guestRouter.get('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const problemId = parseInt(req.params.id);

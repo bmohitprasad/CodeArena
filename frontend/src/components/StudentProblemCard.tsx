@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 
 export interface StudentProblemCardProps {
-  serial: number;        // 👈 UI serial number
-  id: number;            // 👈 DB id
+  serial: number;        
+  id: number;            
   title: string;
   content: string;
   assignmentId: number;
