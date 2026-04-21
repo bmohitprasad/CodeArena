@@ -11,10 +11,13 @@ const prisma_1 = require("../../prisma/prisma");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const studentAuthRouter = (0, express_2.Router)();
 const signupInput = zod_1.default.object({
-    roll_num: zod_1.default.coerce.number().int(),
-    password: zod_1.default.string(),
-    name: zod_1.default.string(),
-    branch: zod_1.default.string()
+    roll_num: zod_1.default.coerce.number()
+        .int()
+        .min(100000, { message: "Roll number must be at least 6 digits" })
+        .max(999999, { message: "Roll number cannot exceed 6 digits" }),
+    password: zod_1.default.string().min(6, { message: "Password must be at least 6 characters long" }),
+    name: zod_1.default.string().min(2, { message: "Name is too short" }),
+    branch: zod_1.default.string().min(1, { message: "Branch is required" })
 });
 const signinInput = zod_1.default.object({
     roll_num: zod_1.default.coerce.number().int(),
@@ -25,7 +28,9 @@ studentAuthRouter.use(express_1.default.json());
 studentAuthRouter.post('/signup', async (req, res) => {
     const parseResult = signupInput.safeParse(req.body);
     if (!parseResult.success) {
-        return res.status(411).json({ message: "Inputs not correct" });
+        return res.status(400).json({
+            message: parseResult.error.issues[0].message
+        });
     }
     const body = parseResult.data;
     const hashedPassword = await bcrypt_1.default.hash(body.password, 10);
@@ -38,61 +43,41 @@ studentAuthRouter.post('/signup', async (req, res) => {
                 branch: body.branch
             },
         });
-        const token = jsonwebtoken_1.default.sign({
-            id: user.roll_num,
-            role: user.role,
-            name: user.name,
-            branch: user.branch
-        }, JWT_SECRET);
-        const roll_num = user.roll_num;
-        return res.json({
-            jwt: token,
-            roll_num: roll_num
-        });
+        const token = jsonwebtoken_1.default.sign({ id: user.roll_num, role: user.role }, JWT_SECRET);
+        return res.json({ jwt: token, roll_num: user.roll_num });
     }
     catch (e) {
+        if (e.code === 'P2002') {
+            return res.status(409).json({
+                message: "A student with this roll number is already registered."
+            });
+        }
         console.error(e);
-        return res.status(411).send('Invalid');
+        return res.status(500).json({ message: "Internal server error" });
     }
 });
 studentAuthRouter.post('/signin', async (req, res) => {
     const parseResult = signinInput.safeParse(req.body);
     if (!parseResult.success) {
-        return res.status(411).json({ message: "Inputs not correct" });
+        return res.status(400).json({ message: parseResult.error.issues[0].message });
     }
-    const body = parseResult.data;
-    const roll = Number(body.roll_num);
+    const { roll_num, password } = parseResult.data;
     try {
-        const user = await prisma_1.prisma.student.findFirst({
-            where: {
-                roll_num: roll
-            },
+        const user = await prisma_1.prisma.student.findUnique({
+            where: { roll_num: Number(roll_num) },
         });
         if (!user) {
-            res.status(403);
-            return res.json({
-                message: "Incorrect credentials"
-            });
+            return res.status(403).json({ message: "No account found with this roll number" });
         }
-        const passwordMatch = await bcrypt_1.default.compare(body.password, user.password);
+        const passwordMatch = await bcrypt_1.default.compare(password, user.password);
         if (!passwordMatch) {
-            return res.status(403).json({ message: 'Incorrect credentials' });
+            return res.status(403).json({ message: "Incorrect password" });
         }
-        const token = jsonwebtoken_1.default.sign({
-            id: user.roll_num,
-            role: user.role,
-            name: user.name,
-            branch: user.branch
-        }, JWT_SECRET);
-        const roll_num = user.roll_num;
-        return res.json({
-            jwt: token,
-            roll_num: roll_num
-        });
+        const token = jsonwebtoken_1.default.sign({ id: user.roll_num, role: user.role }, JWT_SECRET);
+        return res.json({ jwt: token, roll_num: user.roll_num });
     }
     catch (e) {
-        console.error(e);
-        return res.status(411).send('Invalid');
+        return res.status(500).json({ message: "Internal server error" });
     }
 });
 exports.default = studentAuthRouter;

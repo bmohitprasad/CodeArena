@@ -10,20 +10,53 @@ const prisma_1 = require("../../prisma/prisma");
 const zod_1 = __importDefault(require("zod"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const studentRouter = (0, express_1.Router)();
+const updateStudentSchema = zod_1.default.object({
+    name: zod_1.default.string().optional(),
+    branch: zod_1.default.string().optional(),
+    password: zod_1.default.string().optional()
+});
 const submitSchema = zod_1.default.object({
-    studentId: zod_1.default.number().int(),
     assignmentId: zod_1.default.number().int(),
     problemId: zod_1.default.number().int(),
     language: zod_1.default.string().min(1),
     code: zod_1.default.string().min(1),
     input: zod_1.default.string().optional()
 });
-// Join a class
+const publicRunSchema = zod_1.default.object({
+    language: zod_1.default.string().min(1),
+    code: zod_1.default.string().min(1, "Code cannot be empty"),
+    input: zod_1.default.string().optional()
+});
+studentRouter.get('/public/problems', async (req, res) => {
+    try {
+        const problems = await prisma_1.prisma.problem.findMany({
+            where: { assignmentId: 1 },
+            select: { id: true, title: true, description: true, difficulty: true }
+        });
+        res.json(problems);
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to fetch guest problems' });
+    }
+});
+studentRouter.post('/public/run', async (req, res) => {
+    const parsed = publicRunSchema.safeParse(req.body);
+    if (!parsed.success)
+        return res.status(400).json({ error: 'Invalid payload' });
+    const { code, language, input } = parsed.data;
+    try {
+        const result = await (0, codeRunner_1.runCode)(language, code, input || '');
+        return res.json({ output: result.output, success: !result.output.includes('Build failed') });
+    }
+    catch (err) {
+        return res.status(500).json({ error: 'Execution failed', details: err.message });
+    }
+});
 studentRouter.post('/join', authenticate_1.authenticate, async (req, res) => {
     const joinCode = req.body.joinCode;
-    const roll_num = req.body.roll_num;
-    if (!roll_num || !joinCode) {
-        return res.status(400).json({ message: 'Missing studentId or joinCode' });
+    const roll_num = req.user.id;
+    if (!joinCode) {
+        return res.status(400).json({ message: 'Missing joinCode' });
     }
     try {
         const foundClass = await prisma_1.prisma.class.findUnique({ where: { joinCode } });
@@ -47,8 +80,9 @@ studentRouter.post('/join', authenticate_1.authenticate, async (req, res) => {
     }
 });
 // Get student's classes
+// Note: :id is kept in route for compatibility but ignored; source of truth is the token.
 studentRouter.get('/:id/classes', authenticate_1.authenticate, async (req, res) => {
-    const studentId = Number(req.params.id);
+    const studentId = req.user.id;
     try {
         const enrolledClasses = await prisma_1.prisma.enrollment.findMany({
             where: { student_id: studentId },
@@ -95,38 +129,45 @@ studentRouter.get('/assignment/problem/:id', authenticate_1.authenticate, async 
 studentRouter.post('/:assid/problem/:id/run', authenticate_1.authenticate, async (req, res) => {
     const problemId = parseInt(req.params.id);
     const assignmentId = parseInt(req.params.assid);
-    const studentId = req.body.studentId;
+    const studentId = req.user.id;
     const { code, language, input } = req.body;
     try {
         const result = await (0, codeRunner_1.runCode)(language, code, input || '');
-        // Respond with runner result
-        res.json({ output: result.output });
-    }
-    catch (err) {
-        return res.status(500).json({ err });
-    }
-    try {
-        await prisma_1.prisma.problemSubmission.create({
-            data: {
-                assignmentId,
-                student_id: studentId,
-                isCompleted: true,
-                problemId
+        const isExecutionError = result.output.includes('Build failed') || result.output.includes('Error:');
+        if (!isExecutionError) {
+            try {
+                await prisma_1.prisma.problemSubmission.create({
+                    data: {
+                        assignmentId,
+                        student_id: Number(studentId),
+                        isCompleted: true,
+                        problemId
+                    }
+                });
             }
+            catch (err) {
+                console.error('problemSubmission mark error:', err);
+            }
+        }
+        return res.status(isExecutionError ? 422 : 200).json({
+            output: result.output,
+            success: !isExecutionError
         });
     }
     catch (err) {
-        // Non-fatal for run; log only
-        console.error('problemSubmission mark error:', err);
+        return res.status(500).json({
+            error: 'Execution failed',
+            details: err.message || 'Unknown error occurred in code runner'
+        });
     }
 });
 // Mark assignment submitted
 studentRouter.post("/assignment/:id", authenticate_1.authenticate, async (req, res) => {
     const assignmentId = Number(req.params.id);
-    const studentId = Number(req.body.studentId);
-    if (!assignmentId || !studentId) {
+    const studentId = req.user.id;
+    if (!assignmentId) {
         return res.status(400).json({
-            error: "assignmentId and studentId are required"
+            error: "assignmentId is required"
         });
     }
     try {
@@ -153,20 +194,12 @@ studentRouter.post("/assignment/:id", authenticate_1.authenticate, async (req, r
         });
     }
 });
-// strict compare
-const equalStrict = (a, b) => a === b;
-// relaxed: trim trailing spaces/newlines on each line
-const normalizeLines = (s) => s.replace(/\r\n/g, '\n')
-    .split('\n')
-    .map(line => line.replace(/\s+$/g, ''))
-    .join('\n')
-    .trim();
-const equalNormalized = (a, b) => normalizeLines(a) === normalizeLines(b);
 studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res) => {
     const parsed = submitSchema.safeParse(req.body);
     if (!parsed.success)
         return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-    const { studentId, assignmentId, problemId, language, code, input } = parsed.data;
+    const studentId = req.user.id;
+    const { assignmentId, problemId, language, code, input } = parsed.data;
     // Load entities
     const [student, assignment, problem] = await Promise.all([
         prisma_1.prisma.student.findUnique({ where: { roll_num: Number(studentId) } }),
@@ -191,8 +224,8 @@ studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res)
 studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = Number(req.query.studentId);
-    if (!problemId || !assignmentId || !studentId) {
+    const studentId = req.user.id;
+    if (!problemId || !assignmentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
     try {
@@ -215,8 +248,8 @@ studentRouter.get('/problem/:problemId/latest', authenticate_1.authenticate, asy
 studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate, async (req, res) => {
     const problemId = Number(req.params.problemId);
     const assignmentId = Number(req.query.assignmentId);
-    const studentId = Number(req.query.studentId);
-    if (!problemId || !assignmentId || !studentId) {
+    const studentId = req.user.id;
+    if (!problemId || !assignmentId) {
         return res.status(400).json({ error: 'Missing ids' });
     }
     try {
@@ -234,9 +267,9 @@ studentRouter.get('/problem/:problemId/submissions', authenticate_1.authenticate
 });
 studentRouter.get('/assignment/:assignmentId/problem-status', authenticate_1.authenticate, async (req, res) => {
     const assignmentId = Number(req.params.assignmentId);
-    const studentId = Number(req.query.studentId);
-    if (!assignmentId || !studentId) {
-        return res.status(400).json({ error: 'Missing ids' });
+    const studentId = req.user.id;
+    if (!assignmentId) {
+        return res.status(400).json({ error: 'Missing assignmentId' });
     }
     // Find all problem IDs in this assignment
     const problems = await prisma_1.prisma.problem.findMany({
@@ -261,56 +294,47 @@ studentRouter.get('/assignment/:assignmentId/problem-status', authenticate_1.aut
     const status = problemIds.map(pid => ({ problemId: pid, isSubmitted: set.has(pid) }));
     return res.json({ status });
 });
-// Update student profile
-const updateProfileSchema = zod_1.default.object({
-    roll_num: zod_1.default.number().int(),
-    name: zod_1.default.string().optional(),
-    branch: zod_1.default.string().optional(),
-    password: zod_1.default.string().optional(),
-    email: zod_1.default.string().email().optional()
-});
-studentRouter.post('/profile/update', authenticate_1.authenticate, async (req, res) => {
-    const parsed = updateProfileSchema.safeParse(req.body);
-    if (!parsed.success) {
-        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-    }
-    const { roll_num, name, branch, password } = parsed.data;
+studentRouter.get('/profile', authenticate_1.authenticate, async (req, res) => {
     try {
+        const roll_num = Number(req.user.id);
         const student = await prisma_1.prisma.student.findUnique({
-            where: { roll_num }
+            where: { roll_num },
+            select: { roll_num: true, name: true, branch: true }
         });
-        if (!student) {
-            return res.status(404).json({ error: 'Student not found' });
-        }
+        if (!student)
+            return res.status(404).json({ error: "Student not found" });
+        return res.json({ student });
+    }
+    catch (e) {
+        console.error("Profile fetch error:", e);
+        return res.status(500).json({ error: "Internal Server Error", details: e.message });
+    }
+});
+// UPDATE Profile
+studentRouter.post('/profile/update', authenticate_1.authenticate, async (req, res) => {
+    const parsed = updateStudentSchema.safeParse(req.body);
+    if (!parsed.success)
+        return res.status(400).json({ error: 'Invalid payload' });
+    const roll_num = req.user.id;
+    const { name, branch, password } = parsed.data;
+    try {
         const updateData = {};
         if (name)
             updateData.name = name;
         if (branch)
             updateData.branch = branch;
-        if (password && password.trim() !== '') {
+        if (password?.trim())
             updateData.password = await bcrypt_1.default.hash(password, 10);
-        }
         const updatedStudent = await prisma_1.prisma.student.update({
-            where: { roll_num },
+            where: { roll_num: Number(roll_num) },
             data: updateData,
-            select: {
-                roll_num: true,
-                name: true,
-                branch: true,
-                role: true
-            }
+            select: { roll_num: true, name: true, branch: true }
         });
-        return res.status(200).json({
-            message: 'Profile updated successfully',
-            student: updatedStudent
-        });
+        return res.status(200).json({ message: 'Profile updated', student: updatedStudent });
     }
     catch (err) {
-        console.error('Profile update error:', err);
-        return res.status(500).json({
-            error: 'Failed to update profile',
-            details: err.message
-        });
+        console.error("Profile update error:", err);
+        res.status(500).json({ error: 'Update failed', details: err.message });
     }
 });
 exports.default = studentRouter;

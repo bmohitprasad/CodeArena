@@ -227,49 +227,44 @@ const updateProfileSchema = zod_1.z.object({
     password: zod_1.z.string().optional(),
     email: zod_1.z.string().email().optional()
 });
+teacherRouter.get('/profile', authenticate_1.authenticate, async (req, res) => {
+    try {
+        const teacherId = Number(req.user.id);
+        const teacher = await prisma_1.prisma.teacher.findUnique({
+            where: { id: teacherId },
+            select: { id: true, name: true, dept: true, email: true }
+        });
+        if (!teacher)
+            return res.status(404).json({ error: "Teacher not found" });
+        return res.json({ teacher });
+    }
+    catch (e) {
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+// UPDATE Profile
 teacherRouter.post('/profile/update', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), async (req, res) => {
     const parsed = updateProfileSchema.safeParse(req.body);
-    if (!parsed.success) {
-        return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
-    }
+    if (!parsed.success)
+        return res.status(400).json({ error: 'Invalid payload' });
     const { id, name, dept, password } = parsed.data;
     try {
-        const teacher = await prisma_1.prisma.teacher.findUnique({
-            where: { id }
-        });
-        if (!teacher) {
-            return res.status(404).json({ error: 'Teacher not found' });
-        }
         const updateData = {};
         if (name)
             updateData.name = name;
         if (dept)
             updateData.dept = dept;
-        if (password && password.trim() !== '') {
+        if (password?.trim())
             updateData.password = await bcrypt_1.default.hash(password, 10);
-        }
         const updatedTeacher = await prisma_1.prisma.teacher.update({
-            where: { id },
+            where: { id: Number(id) },
             data: updateData,
-            select: {
-                id: true,
-                name: true,
-                dept: true,
-                email: true,
-                role: true
-            }
+            select: { id: true, name: true, dept: true, email: true }
         });
-        return res.status(200).json({
-            message: 'Profile updated successfully',
-            teacher: updatedTeacher
-        });
+        return res.json({ message: 'Profile updated', teacher: updatedTeacher });
     }
     catch (err) {
-        console.error('Profile update error:', err);
-        return res.status(500).json({
-            error: 'Failed to update profile',
-            details: err.message
-        });
+        res.status(500).json({ error: 'Update failed' });
     }
 });
 exports.default = teacherRouter;
