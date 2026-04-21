@@ -16,14 +16,14 @@ const GUEST_PROBLEMS = [
     title: "Sum of Two Numbers",
     description: "Read two numbers and print their sum",
     content: "Read two numbers from input and print their sum. Each number is on a separate line.",
-    expectedOutput: "The sum of the two numbers",
+    expectedOutput: "15",
     difficulty: "Beginner"
   },
   {
     title: "Factorial Calculation",
     description: "Calculate factorial of a given number",
     content: "Read a number from input and print its factorial. For example, factorial of 5 is 120.",
-    expectedOutput: "The factorial of the number",
+    expectedOutput: "120",
     difficulty: "Intermediate"
   }
 ];
