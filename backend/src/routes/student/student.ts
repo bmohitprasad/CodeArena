@@ -216,7 +216,6 @@ studentRouter.post('/submit-code', authenticate, async (req, res) => {
   const studentId = (req as any).user.id;
   const { assignmentId, problemId, language, code, input } = parsed.data;
 
-  // Load entities
   const [student, assignment, problem] = await Promise.all([
     prisma.student.findUnique({ where: { roll_num: Number(studentId) } }),
     prisma.assignment.findUnique({ where: { id: assignmentId } }),

@@ -30,7 +30,6 @@ const GUEST_PROBLEMS = [
 // Seed guest problems (create if they don't exist)
 guestRouter.post('/seed', async (req, res) => {
     try {
-        // Check if guest problems already exist
         const count = await prisma_1.prisma.guestProblem.count();
         if (count > 0) {
             return res.status(200).json({ message: 'Guest problems already seeded', count });

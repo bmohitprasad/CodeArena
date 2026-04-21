@@ -37,15 +37,12 @@ export default function CodeEditor() {
   const { id } = useParams<{ id: string }>();
   const problemId = useMemo(() => parseInt(id || "0", 10), [id]);
 
-  // For regular problems
   const singleProblem = SingleProblem({ problem_id: problemId });
   const regularProblemObj = (singleProblem.problem as any) || {};
 
-  // For guest problems
   const guestProblem = useSingleGuestProblem(isGuest ? problemId : 0);
   const guestProblemObj = guestProblem.problem || {};
 
-  // Use the appropriate problem object
   const problemObj = isGuest ? guestProblemObj : regularProblemObj;
 
   const assignmentId = useMemo(() => {

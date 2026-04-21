@@ -17,8 +17,6 @@ export const StudentClasses = () => {
     
     const student_id = localStorage.getItem("studentId");
     const { loadingClasses, classes } = studentClasses({ student_id: Number(student_id) });
-
-    // THEME TOKENS
     const pageBg = darkMode ? "bg-[#1E293B]" : "bg-gray-50";
     const subTextColor = darkMode ? "text-slate-400" : "text-slate-700";
 

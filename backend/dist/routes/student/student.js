@@ -200,7 +200,6 @@ studentRouter.post('/submit-code', authenticate_1.authenticate, async (req, res)
         return res.status(400).json({ error: 'Invalid payload', details: parsed.error.issues });
     const studentId = req.user.id;
     const { assignmentId, problemId, language, code, input } = parsed.data;
-    // Load entities
     const [student, assignment, problem] = await Promise.all([
         prisma_1.prisma.student.findUnique({ where: { roll_num: Number(studentId) } }),
         prisma_1.prisma.assignment.findUnique({ where: { id: assignmentId } }),

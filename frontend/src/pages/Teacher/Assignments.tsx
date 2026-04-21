@@ -35,20 +35,16 @@ export const TeacherAssignments = () => {
   const navigate = useNavigate();
 
   const handleDeleteClass = async (classId: number) => {
-  // Add a clear warning message
     const isConfirmed = window.confirm(
       "⚠️ Warning: Are you sure you want to delete this class? This action cannot be undone and will remove all student enrollments and assignments."
     );
-
-    if (!isConfirmed) return; // Exit if the teacher clicks 'Cancel'
-
+    if (!isConfirmed) return;
     try {
       await axios.delete(`${BACKEND_URL}/api/v1/admin/class/${classId}`, {
         headers: {
           Authorization: localStorage.getItem("jwt")
         }
       });
-      // Redirect after successful deletion
       navigate("/teacher/classes");
     } catch (error) {
       console.error("Failed to delete class:", error);

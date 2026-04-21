@@ -164,7 +164,6 @@ teacherRouter.get('/assignment/:id', authenticate_1.authenticate, async (req, re
         res.status(500).json({ error: 'Could not fetch problems' });
     }
 });
-// Add a problem to an assignment
 teacherRouter.post('/assignment/:id/add-problem', authenticate_1.authenticate, (0, requireRole_1.requireRole)('TEACHER'), async (req, res) => {
     try {
         const assignmentId = Number(req.params.id);

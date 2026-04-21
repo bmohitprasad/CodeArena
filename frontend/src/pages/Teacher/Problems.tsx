@@ -22,12 +22,10 @@ export const TeacherProblems = () => {
   const { id } = useParams<{ id: string }>();
   const assignment_id = useMemo(() => parseInt(id || "0", 10), [id]);
 
-  // Data Hooks
   const [refresh, setRefresh] = useState(false);
   const { loading, problems } = Problems({ assignment_id, refresh });
   const { loadingStudents, submittedStudents } = Submissions({ assignment_id });
 
-  // Form State
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
@@ -38,8 +36,6 @@ export const TeacherProblems = () => {
 
   const token = localStorage.getItem("jwt") || "";
   const authHeader = useMemo(() => ({ Authorization: token }), [token]);
-
-  // Theme Tokens
   const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F5F7FA]";
   const cardBg = darkMode ? "bg-[#0F172A] border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-md";
   const headingColor = darkMode ? "text-white" : "text-[#1E293B]";

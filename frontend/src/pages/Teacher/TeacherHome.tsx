@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BACKEND_URL } from '../../config';
 import { useNavigate, Link } from 'react-router-dom';
 import { Appbar } from '../../components/Appbar';
-import { useTheme } from '../../context/ThemeContext'; // Import Theme
+import { useTheme } from '../../context/ThemeContext';
 
 const TeacherAuth: React.FC = () => {
   const { darkMode } = useTheme();

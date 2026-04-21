@@ -17,7 +17,6 @@ export default function Home() {
   const [guestProblems, setGuestProblems] = useState<GuestProblem[]>([]);
   const [loadingProblems, setLoadingProblems] = useState(false);
 
-  // Fetch guest problems from API
   useEffect(() => {
     const fetchGuestProblems = async () => {
       setLoadingProblems(true);
@@ -37,20 +36,15 @@ export default function Home() {
   }, []);
 
   const handleGuestProblemClick = (problem: GuestProblem) => {
-    // Provided JWT token for authorization
     const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODg4ODg4LCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc3NjY4MjIxOX0._2n0FXwSTzu4olFH0Bk49go4l6iYadbn8CQweRyxwlM";
     localStorage.setItem("token", token);
     localStorage.setItem("role", "STUDENT");
     localStorage.setItem("isGuest", "true");
     localStorage.setItem("guestProblemId", problem.id.toString());
-
-    // Pass assignmentId as a query param so CodeEditor can fetch history and run code
     navigate(`/student/assignment/problem/${problem.id}?assignmentId=1&isGuest=true`);
   };
 
   const { darkMode } = useTheme();
-
-  // BASE THEME TOKENS
   const pageBg = darkMode
     ? "bg-gradient-to-b from-[#0F172A] to-[#1E293B] text-slate-200"
     : "bg-gradient-to-b from-[#F8FAFC] to-[#E2E8F0] text-[#0F172A]";

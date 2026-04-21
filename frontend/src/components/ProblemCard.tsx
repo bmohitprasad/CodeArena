@@ -16,8 +16,6 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   content
 }) => {
   const { darkMode } = useTheme();
-
-  // THEME TOKENS
   const cardBg = darkMode 
     ? "bg-[#0F172A] border-slate-800 hover:border-slate-700" 
     : "bg-white border-slate-200 hover:border-slate-300";

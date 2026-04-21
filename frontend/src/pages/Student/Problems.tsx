@@ -23,8 +23,6 @@ export const StudentProblems = () => {
   const [statusMap, setStatusMap] = useState<Record<number, boolean>>({});
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
-
-  // THEME TOKENS
   const pageBg = darkMode ? "bg-[#1E293B]" : "bg-[#F5F7FA]";
   const headingColor = darkMode ? "text-white" : "text-[#2E3A59]";
   const statusInfoColor = darkMode ? "text-slate-400" : "text-[#64748B]";
