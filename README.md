@@ -1,11 +1,11 @@
-# CodeArena 🚀  
+# CodeArena 
 *A full-stack coding platform for classrooms and competitive programming*
 
 🔗 **Live Demo:** https://code-arena-rho.vercel.app/student/home  
 
 ---
 
-## 📌 Overview
+## Overview
 
 **CodeArena** is a production-grade, full-stack coding platform designed for academic and competitive environments.  
 It enables **teachers** to create classes, assignments, and coding problems, while **students** can write, run, and submit code directly in the browser — similar to platforms like HackerRank or LeetCode, but tailored for classroom use.
@@ -16,13 +16,13 @@ The system focuses on **secure code execution**, **role-based access control**, 
 
 ## ✨ Key Features
 
-### 👩‍🏫 Teacher Features
+### Teacher Features
 - Create and manage classes using unique class codes
 - Create assignments and attach multiple coding problems
 - Define expected outputs for automated evaluation
 - View student submissions and track progress
 
-### 👨‍🎓 Student Features
+### Student Features
 - Join classes using class codes
 - View assignments and problems
 - Write code in an in-browser editor
@@ -32,7 +32,7 @@ The system focuses on **secure code execution**, **role-based access control**, 
 
 ---
 
-## 🧠 Core Concepts
+## Core Concepts
 
 - **Role-Based Access Control (RBAC)**  
   Separate dashboards and permissions for Teachers and Students
@@ -53,7 +53,7 @@ The system focuses on **secure code execution**, **role-based access control**, 
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - React.js
@@ -83,7 +83,7 @@ The system focuses on **secure code execution**, **role-based access control**, 
 
 ---
 
-## 🧩 System Architecture (High Level)
+## System Architecture (High Level)
 
 ```text
 Browser (Student / Teacher)
@@ -100,7 +100,7 @@ Docker Engine
    → Capture Output
 ```
 
-###🔐 Security Highlights
+### Security Highlights
 - JWT authentication for all protected routes
 - Docker sandboxing for code execution
 - No direct system or file access from user code
