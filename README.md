@@ -1,7 +1,7 @@
 # CodeArena 
 *A full-stack coding platform for classrooms and competitive programming*
 
-🔗 **Live Demo:** https://code-arena-rho.vercel.app/student/home  
+🔗 **Live Demo:** https://code-arena-rho.vercel.app/guest
 
 ---
 
