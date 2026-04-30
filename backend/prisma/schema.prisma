@@ -23,7 +23,6 @@ model Student {
   submissions AssignmentSubmission[]
   problemSubs ProblemSubmission[]
 
-  // Backref to code submissions (latest-only row per problem)
   codeSubs ProblemCodeSubmission[]
 }
 
