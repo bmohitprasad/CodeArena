@@ -133,3 +133,5 @@ Docker Engine
 
 CodeArena bridges the gap between traditional **online judges** and **classroom-based coding platforms**.  
 It is designed not just for solving problems, but for **learning, teaching, and evaluating code safely at scale**, with a strong focus on security, scalability, and real-world system design.
+
+
