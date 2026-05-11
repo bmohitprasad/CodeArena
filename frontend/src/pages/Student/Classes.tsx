@@ -63,7 +63,7 @@ export const StudentClasses = () => {
                             </Button>
                         </div>
                         <p className={`mt-2 text-sm font-medium ${subTextColor} opacity-80`}>
-                            Pro-tip: Use code <span className="text-blue-500 font-bold">BOCEK6</span> to test the demo.
+                            Pro-tip: Use code <span className="text-blue-500 font-bold">B9BA7S</span> to test the demo.
                         </p>
                     </div>
 
