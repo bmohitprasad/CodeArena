@@ -48,7 +48,7 @@ export const StudentClasses = () => {
                     <div className="max-w-xl">
                         <div className="flex gap-2 items-start">
                             <Input
-                                placeholder="Enter Class Code (e.g. BOCEK6)"
+                                placeholder="Enter Class Code (e.g. B9BA7S)"
                                 title="Class Code"
                                 value={joinCode}
                                 onChange={(e) => setJoinCode(e.target.value)}
